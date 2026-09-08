@@ -3,6 +3,7 @@ import SwitcherCore
 
 struct AccountsView: View {
     @ObservedObject var store: AccountStore
+    @Environment(\.openWindow) private var openWindow
     @State private var switchTarget: Profile?
     @State private var removeTarget: Profile?
     @State private var renameTarget: Profile?
@@ -57,6 +58,7 @@ struct AccountsView: View {
                     Button { store.addAccount() } label: { Label("登录新账号", systemImage: "plus") }
                         .buttonStyle(.borderedProminent).tint(accent)
                     Button("保存当前账号") { store.importCurrent() }
+                    Button("设置…") { openWindow(id: "preferences") }
                     Spacer()
                     if store.busy { ProgressView().controlSize(.small) }
                 }.disabled(store.busy || !store.loaded)

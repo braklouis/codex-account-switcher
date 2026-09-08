@@ -16,11 +16,21 @@ import SwitcherCore
     let bridge = CodexBridge()
     let demo: Bool
     private var session: RPCSession?
+    private var pollTask: Task<Void, Never>?
 
     init(demo: Bool = false) {
         self.demo = demo
         if demo { loadDemo() }
-        else { reload() }
+        else {
+            reload()
+            pollTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                while !Task.isCancelled {
+                    if let self, !self.busy, self.loaded, !self.profiles.isEmpty { self.refreshQuotas() }
+                    try? await Task.sleep(nanoseconds: 300_000_000_000)
+                }
+            }
+        }
     }
     func reload() {
         guard !demo else { return }
@@ -130,6 +140,7 @@ import SwitcherCore
                     let quota = try await rpc.quota(auth: auth)
                     self.quotas[profile.id] = quota; self.quotaDates[profile.id] = Date()
                     self.quotaErrors.removeValue(forKey: profile.id)
+                    await AppPreferences.shared.check(profile: profile, quota: quota)
                 } catch {
                     self.quotaErrors[profile.id] = (error as? SwitcherError)?.message ?? "额度返回格式无法读取，请更新工具后重试"
                 }

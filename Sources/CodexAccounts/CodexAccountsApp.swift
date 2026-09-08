@@ -12,6 +12,7 @@ import SwitcherCore
         }
         .defaultSize(width: 700, height: 780)
         .windowResizability(.contentMinSize)
+        Window("设置", id: "preferences") { PreferencesView() }.windowResizability(.contentSize)
         MenuBarExtra("Codex Accounts", systemImage: "arrow.left.arrow.right.circle") {
             MenuContent(store: store)
         }.menuBarExtraStyle(.window)
@@ -27,7 +28,8 @@ import SwitcherCore
         guard let id = Bundle.main.bundleIdentifier else { return }
         let peers = NSRunningApplication.runningApplications(withBundleIdentifier: id)
             .filter { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
-        if let peer = peers.first { peer.activate(options: [.activateAllWindows]); NSApp.terminate(nil) }
+        if let peer = peers.first { peer.activate(options: [.activateAllWindows]); NSApp.terminate(nil); return }
+        if !CommandLine.arguments.contains("--demo") { AppPreferences.shared.start() }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     private func selfCheck() async {
@@ -102,6 +104,7 @@ struct MenuContent: View {
             Divider()
             HStack {
                 Button("管理账号…", action: manage)
+                Button("设置…") { openWindow(id: "preferences"); NSApp.activate(ignoringOtherApps: true) }
                 Spacer()
                 Button("退出") { NSApp.terminate(nil) }.disabled(store.busy)
             }.font(.system(size: 12)).buttonStyle(.borderless).padding(16)
