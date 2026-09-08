@@ -28,9 +28,13 @@ This is an independent community project, not affiliated with or endorsed by Ope
 ## Install with Homebrew
 
 ```sh
+brew trust --cask braklouis/tap/codex-accounts
 brew tap braklouis/tap
 brew install --cask braklouis/tap/codex-accounts
 ```
+
+Older Homebrew versions without `brew trust` can omit the first command. Review the cask before granting trust.
+
 
 Update with `brew update` followed by `brew upgrade --cask braklouis/tap/codex-accounts`.
 

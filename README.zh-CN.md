@@ -16,9 +16,13 @@
 需要 macOS 14+、Apple Silicon 和已安装的官方 Codex 桌面应用。Intel 源码构建尚未验证。
 
 ```sh
+brew trust --cask braklouis/tap/codex-accounts
 brew tap braklouis/tap
 brew install --cask braklouis/tap/codex-accounts
 ```
+
+旧版 Homebrew 若没有 `brew trust` 命令，可省略第一行。授予信任前应检查 cask 内容。
+
 
 也可从 [Releases](https://github.com/braklouis/codex-account-switcher/releases/latest) 下载 ZIP，解压后移入应用程序目录。
 
