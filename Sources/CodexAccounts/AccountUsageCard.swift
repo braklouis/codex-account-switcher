@@ -52,8 +52,18 @@ struct AccountUsageCard: View {
                 Menu {
                     Button("重命名", action: onRename)
                     Button("移除账号", role: .destructive, action: onRemove)
-                } label: { Image(systemName: "ellipsis") }
-                    .menuStyle(.borderlessButton).frame(width: 18).disabled(store.busy)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help("更多账号操作")
+                    .accessibilityLabel("更多账号操作")
+                    .disabled(store.busy)
             }
             if let first = buckets.first {
                 VStack(alignment: .leading, spacing: 16) {
