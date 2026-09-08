@@ -50,11 +50,10 @@ struct MenuQuotaLabel: View {
         let remaining = short ?? weekly
         let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
-        let color = short != nil
-            ? NSColor(srgbRed: 0.55, green: 0.87, blue: 0.98, alpha: 1)
-            : NSColor(srgbRed: 0.77, green: 0.70, blue: 0.98, alpha: 1)
+        let color = NSColor(srgbRed: 0.40, green: 0.91, blue: 1.0, alpha: 1)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
         let topAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium),
+            .font: font,
             .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color
         ]
         let width = max(58, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 4)
@@ -66,7 +65,7 @@ struct MenuQuotaLabel: View {
         let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
         if style != "bars" || remaining == nil {
             (value as NSString).draw(in: NSRect(x: 0, y: style == "both" ? 1 : 0, width: width, height: 12), withAttributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold),
+                .font: font,
                 .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color,
                 .paragraphStyle: center
             ])
