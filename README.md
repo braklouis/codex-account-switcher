@@ -2,30 +2,23 @@
 
 <img src="Assets/AppIcon.png" width="96" alt="Codex Accounts icon">
 
-A small native macOS menu bar app for switching your own Codex accounts and checking remaining quota.
+A little Mac app for people with more than one Codex account. See how much quota you have left and switch accounts without signing out and back in each time.
 
-**[简体中文](README.zh-CN.md)** · [Releases](https://github.com/braklouis/codex-account-switcher/releases) · [Security](SECURITY.md) · [MIT license](LICENSE)
+[简体中文](README.zh-CN.md) · [Download](https://github.com/braklouis/codex-account-switcher/releases/latest)
 
-## Features
+## What it does
 
-- Save multiple accounts in the local macOS Keychain; add accounts through the official browser sign-in.
-- Show short-term and weekly remaining quota directly in the menu bar: percentages, segmented bars, or both.
-- Light cyan and soft violet quota colors, detailed reset countdowns, and additional quota buckets.
-- Switch accounts with a confirmation and a graceful Codex restart; attempt rollback if switching fails.
-- Menu bar only mode, optional Dock icon, launch at login, and alerts below 75%, 50%, and 25%.
-- Simplified Chinese / English selection in Settings. Some low-level system and diagnostic messages may remain Chinese.
-- SwiftUI + AppKit, no third-party application dependencies, no telemetry or account upload service.
+- Keeps your accounts together, with the active account at the top.
+- Shows time until reset above your remaining quota in the menu bar.
+- Lets you choose percentages, a progress bar, or both.
+- Reminds you when quota drops below 75%, 50%, and 25%.
+- Supports English and Chinese, launch at login, and hiding the Dock icon.
 
-This is an independent community project, not affiliated with or endorsed by OpenAI. It does not increase or reset your subscription limits.
+Accounts are saved in your Mac's Keychain. There is no account upload service or telemetry.
 
-## Requirements
+## Install
 
-- macOS 14 or later. The prebuilt release and Homebrew cask currently support **Apple Silicon only**.
-- The official Codex desktop app installed and launched at least once.
-- ChatGPT subscription sign-in with the default `~/.codex` home and file-based credential storage. API keys, custom homes, and explicit `keyring` / `auto` storage are not supported.
-- Intel source builds are not verified.
-
-## Install with Homebrew
+Requires **macOS 14+, Apple Silicon, and the official Codex desktop app**.
 
 ```sh
 brew trust --cask braklouis/tap/codex-accounts
@@ -33,74 +26,44 @@ brew tap braklouis/tap
 brew install --cask braklouis/tap/codex-accounts
 ```
 
-Older Homebrew versions without `brew trust` can omit the first command. Review the cask before granting trust.
+If your Homebrew version doesn't have `brew trust`, skip the first line. You can also download the app from [Releases](https://github.com/braklouis/codex-account-switcher/releases/latest) and drag it into Applications.
 
+### First time opening it?
 
-Update with `brew update` followed by `brew upgrade --cask braklouis/tap/codex-accounts`.
+The app isn't Apple-notarized yet. If macOS says Apple cannot verify it, and you trust this download:
 
-The tap is maintained by this project; this is not a listing in the official Homebrew cask repository. The cask verifies the release ZIP with a pinned SHA-256 and does not run credential-changing installation scripts.
+1. Try opening the app, then dismiss the warning without moving it to Trash.
+2. Go to **System Settings → Privacy & Security → Open Anyway**.
+3. Confirm **Open** when prompted.
 
-### macOS first launch: Apple cannot verify the app
+You don't need to disable Gatekeeper. This applies to the verification warning, not a warning that malware was detected. [More details from Apple](https://support.apple.com/en-us/102445).
 
-You may see a warning that Apple cannot verify Codex Accounts is free of malware. This release is **ad-hoc signed**, but has **no Apple Developer ID signature or Apple notarization**. Ad-hoc signing does not verify the publisher's identity. This warning means Apple cannot provide that verification; it is not itself a positive malware detection, nor does it prove the app is safe. Homebrew installation and SHA-256 verification do not replace notarization.
+## Getting started
 
-If you downloaded this release from this repository or its linked Homebrew cask, have reviewed the source/security information, and choose to trust it:
+Open the app and choose **Save current account**, or **Add account** to sign in through your browser. Allow Keychain access when asked, then refresh your quota.
 
-1. Move the app to **Applications** (Homebrew normally does this), then try opening it once.
-2. Dismiss the warning without moving the app to Trash.
-3. Open **Apple menu → System Settings → Privacy & Security**.
-4. Scroll to **Security**, find the message about Codex Accounts, and click **Open Anyway**.
-5. Authenticate if prompted, then confirm **Open**. macOS saves an exception for this app; an update may require approval again.
+Click an account to switch. Finish any running Codex tasks and CLI sessions first: switching restarts Codex. Your accounts share local task history and projects.
 
-If Open Anyway is missing, try opening the app again, then return to Settings. On an organization-managed Mac, contact your administrator if policy prevents approval. A separate warning that the app **will damage your computer**, contains malware, or is damaged is not covered by these instructions: stop and investigate rather than overriding it.
+Language, menu bar appearance, startup, and notifications are in **Settings**. The app checks quota every five minutes.
 
-Do not disable Gatekeeper globally or remove quarantine with terminal commands. The installer does neither. You can also review and build the source yourself. A later Developer ID-signed and notarized release would address the missing publisher verification; the current release has not completed that process.
+Currently supports subscription accounts using Codex's default home and file-based sign-in. API keys and custom credential stores aren't supported. This is an independent project, not an official OpenAI app.
 
-A subsequent **Keychain access** prompt is separate: the app needs access to its saved accounts. Read that prompt carefully before approving.
+## Build from source
 
-[Apple's official first-launch guidance](https://support.apple.com/en-us/102445).
-
-## Download manually
-
-Download `Codex-Accounts-0.4.0-arm64.zip` from [Releases](https://github.com/braklouis/codex-account-switcher/releases/latest), extract it, and move `Codex Accounts.app` into Applications. Checksums are included with the release.
-
-## Use
-
-1. Open Codex Accounts, then choose **Save current account** or **Add account**.
-2. Allow its Keychain access request. A rebuilt app may request access again because ad-hoc signatures change.
-3. Refresh quota, then open **Settings → Language / 语言** to select your language and menu bar style.
-4. Before switching, finish running Codex tasks and close CLI sessions; confirm **Switch and restart**.
-
-By default, the app stays in the menu bar, attempts to enable launch at login, and requests notification permission. These can be disabled in Settings. Keep the app in its installed location; after moving it, toggle launch at login off and on again.
-
-Quota checks run every five minutes while awake. Unknown, expired, or failed data is not treated as zero. Older values may remain dimmed in account cards. Notifications are deduplicated per account, window, and reset cycle.
-
-## Privacy and boundaries
-
-Credentials are held in a device-local, non-iCloud Keychain item. Account switching writes the official `~/.codex/auth.json` with mode `0600` through an atomic rename. Quota reads use the installed official Codex app-server in an isolated temporary home; access tokens travel over local stdio, not command-line arguments. The app does not send saved accounts to the maintainer or proxy API requests.
-
-**Switching accounts is not data isolation:** accounts share local Codex task history, projects, and the same home directory. Cloud tasks and permissions remain account-specific. Do not use concurrent CLI sessions or another switcher during a switch.
-
-Temporary login homes use `0700` permissions and are removed on normal completion. A crash or forced termination can leave private temporary files. The macOS account and its Keychain remain a trust boundary; this tool cannot protect credentials from a compromised local account. Read [SECURITY.md](SECURITY.md) for details and reporting guidance.
-
-## Build and contribute
-
-Install Apple's command-line developer tools with a Swift compiler compatible with this package (validated with Swift 6.3.3), then:
+With Apple's developer tools installed:
 
 ```sh
 git clone https://github.com/braklouis/codex-account-switcher.git
 cd codex-account-switcher
 swift test --disable-sandbox
 zsh scripts/package.sh
-open 'dist/Codex Accounts.app' --args --demo
+open 'dist/Codex Accounts.app'
 ```
 
-Demo mode uses synthetic accounts and never reads or changes real credentials. Run without `--demo` to use real accounts. `--self-check` performs an isolated Keychain and app-server integration check; it is not a real multi-account switching test.
+Add `--args --demo` to the last command to try it with sample accounts.
 
-Release builds default to ad-hoc signing. Maintainers may provide `SIGN_IDENTITY` to the packaging script; notarization is a separate step and is not performed by this script. The package is native to the build host architecture.
+## About
 
-Before submitting changes, run tests and `git diff --check`. Do not include auth files, Keychain exports, raw logs, real account screenshots, or tokens in issues or pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Inspired by [CodexBar](https://github.com/steipete/CodexBar). Built with SwiftUI and AppKit; the icon is AI-generated.
 
-## Acknowledgments
-
-Quota-window presentation was inspired by [CodexBar](https://github.com/steipete/CodexBar). No source code or artwork was copied. The app icon is an original AI-generated asset; its provenance is recorded in [Assets/README.md](Assets/README.md).
+[MIT license](LICENSE) · [Security & privacy](SECURITY.md) · [Contributing](CONTRIBUTING.md)
