@@ -124,14 +124,15 @@ struct MenuContent: View {
             }) { store.refreshQuotas() }
         }
         .alert(L10n.text("切换并重新打开 Codex？"), isPresented: Binding(
-            get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } })) {
+            get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } }), presenting: switchTarget) { target in
             Button(L10n.text("取消"), role: .cancel) { switchTarget = nil }
             Button(L10n.text("切换并重启")) {
-                if let target = switchTarget { store.switchTo(target) }
+                store.switchTo(target)
                 switchTarget = nil
             }
-        } message: {
-            Text(L10n.isEnglish ? "Switch to \(switchTarget?.name ?? ""). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(switchTarget?.name ?? "")」。请先结束正在运行的 Codex 任务和命令行会话，桌面应用会关闭并重新打开。")
+            .disabled(store.busy)
+        } message: { target in
+            Text(L10n.isEnglish ? "Switch to \(target.name). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(target.name)」。请先结束正在运行的 Codex 任务和命令行会话，桌面应用会关闭并重新打开。")
         }
     }
     private func manage() {

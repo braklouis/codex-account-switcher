@@ -77,11 +77,12 @@ struct AccountsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .chooseAccount)) { note in
             if let id = note.object as? UUID { switchTarget = store.profiles.first { $0.id == id } }
         }
-        .alert(L10n.text("切换并重新打开 Codex？"), isPresented: Binding(get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } })) {
+        .alert(L10n.text("切换并重新打开 Codex？"), isPresented: Binding(get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } }), presenting: switchTarget) { target in
             Button(L10n.text("取消"), role: .cancel) { switchTarget = nil }
-            Button(L10n.text("切换并重启")) { if let target = switchTarget { store.switchTo(target) }; switchTarget = nil }
-        } message: {
-            Text(L10n.isEnglish ? "Switch to \(switchTarget?.name ?? ""). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(switchTarget?.name ?? "")」。请先结束正在运行的 Codex 任务和命令行会话。切换会关闭并重新打开桌面应用；本地任务历史继续共用。")
+            Button(L10n.text("切换并重启")) { store.switchTo(target); switchTarget = nil }
+                .disabled(store.busy)
+        } message: { target in
+            Text(L10n.isEnglish ? "Switch to \(target.name). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(target.name)」。请先结束正在运行的 Codex 任务和命令行会话。切换会关闭并重新打开桌面应用；本地任务历史继续共用。")
         }
         .alert(L10n.text("移除保存的账号？"), isPresented: Binding(get: { removeTarget != nil }, set: { if !$0 { removeTarget = nil } })) {
             Button(L10n.text("取消"), role: .cancel) { removeTarget = nil }
