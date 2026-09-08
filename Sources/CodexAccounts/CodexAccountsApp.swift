@@ -13,8 +13,10 @@ import SwitcherCore
         .defaultSize(width: 700, height: 780)
         .windowResizability(.contentMinSize)
         Window("设置", id: "preferences") { PreferencesView() }.windowResizability(.contentSize)
-        MenuBarExtra("Codex Accounts", systemImage: "arrow.left.arrow.right.circle") {
+        MenuBarExtra {
             MenuContent(store: store)
+        } label: {
+            MenuQuotaLabel(store: store)
         }.menuBarExtraStyle(.window)
     }
 }

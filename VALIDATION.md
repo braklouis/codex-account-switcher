@@ -48,3 +48,9 @@ CLANG_MODULE_CACHE_PATH=/private/tmp/codex-accounts-module-cache swift test --di
 - Release 编译及签名校验通过。
 - 真实设置窗口检查：隐藏 Dock 开启；SMAppService 登录启动状态「已启用」；提醒开关开启，系统通知「已允许」。后台启动后真实额度读取正常。
 - 未为验收重启 Mac；登录启动验证到系统注册状态。未人工消耗额度触发所有通知档位，档位逻辑由测试覆盖。
+
+## 顶部菜单栏百分比 / 进度条
+
+- 24 项 XCTest 通过，新增只有每周窗口、Codex 主 bucket 选择、读取失败及缺失主 bucket 的回归测试。
+- Release 编译、签名校验通过，三种状态图使用同一 AppKit 绘制代码导出检查，数字与分段条均正常。
+- 新版进程已启动。线程采样定位其停留在 KeychainVault.load / SecItemCopyMatching 等待系统钥匙串授权；SecurityAgent 禁止自动操作，因此顶部真实额度及设置切换的 live UI 验证仍待用户允许访问后完成。

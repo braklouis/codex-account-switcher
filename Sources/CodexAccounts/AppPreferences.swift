@@ -12,6 +12,9 @@ import SwitcherCore
     @Published var reminders: Bool {
         didSet { UserDefaults.standard.set(reminders, forKey: "quotaReminders") }
     }
+    @Published var menuQuotaStyle: String {
+        didSet { UserDefaults.standard.set(menuQuotaStyle, forKey: "menuQuotaStyle") }
+    }
     @Published var loginStatus = "尚未读取"
     @Published var loginEnabled = false
     @Published var notificationStatus = "尚未读取"
@@ -22,6 +25,7 @@ import SwitcherCore
         defaults.register(defaults: ["menuOnly": true, "quotaReminders": true])
         menuOnly = defaults.bool(forKey: "menuOnly")
         reminders = defaults.bool(forKey: "quotaReminders")
+        menuQuotaStyle = defaults.string(forKey: "menuQuotaStyle") ?? "both"
         if let data = defaults.data(forKey: "quotaAlertHistory"),
            let value = try? JSONDecoder().decode([String: AlertThresholds].self, from: data) { history = value }
         super.init()
@@ -109,6 +113,16 @@ struct PreferencesView: View {
                 Toggle("仅在菜单栏显示，隐藏 Dock 图标", isOn: $preferences.menuOnly)
                 Text("关闭账号窗口后，工具仍会在菜单栏运行。").font(.caption).foregroundStyle(.secondary)
             }
+            Section("菜单栏额度") {
+                Picker("显示形式", selection: $preferences.menuQuotaStyle) {
+                    Text("百分比").tag("numbers")
+                    Text("进度条").tag("bars")
+                    Text("百分比＋进度条").tag("both")
+                }.pickerStyle(.segmented)
+                Text("上行粉色显示短期额度，下行蓝色显示每周额度；仅显示当前账号的 Codex 主额度。未提供或读取失败时显示 —。")
+                    .font(.caption).foregroundStyle(.secondary)
+                MenuQuotaPreview(style: preferences.menuQuotaStyle)
+            }
             Section("启动") {
                 Toggle("登录 Mac 时自动启动", isOn: Binding(get: { preferences.loginEnabled }, set: { preferences.setLogin($0) }))
                 Text(preferences.loginStatus).font(.caption).foregroundStyle(.secondary)
@@ -133,7 +147,7 @@ struct PreferencesView: View {
                 }
             }
             if let message = preferences.message { Text(message).font(.caption).foregroundStyle(.orange) }
-        }.formStyle(.grouped).frame(width: 470, height: 480)
+        }.formStyle(.grouped).frame(width: 490, height: 630)
             .onAppear { preferences.refreshLoginStatus(); Task { await preferences.updateNotificationPermission() } }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 preferences.refreshLoginStatus(); Task { await preferences.updateNotificationPermission() }
