@@ -26,7 +26,25 @@ brew install --cask braklouis/tap/codex-accounts
 
 也可从 [Releases](https://github.com/braklouis/codex-account-switcher/releases/latest) 下载 ZIP，解压后移入应用程序目录。
 
-这是项目自行维护的 Homebrew tap，安装包使用固定 SHA-256 校验。目前为 ad-hoc 签名，**未经过 Apple Developer ID 签名和公证**。若首次打开被系统拦截，请仅在信任下载来源后，在「系统设置 → 隐私与安全」使用「仍要打开」。安装脚本不会关闭 Gatekeeper 或清除隔离标记。
+### 首次打开：Apple 无法验证此应用
+
+如果看到「Apple could not verify … is free of malware」或「Apple 无法验证此应用是否包含恶意软件」，原因是当前版本只有 **ad-hoc 本地签名，没有 Apple Developer ID 开发者签名，也未经过 Apple 公证**。本地签名不验证开发者身份。这条提示表示 Apple 无法提供相应验证，并非已经检出恶意软件，也不能据此保证应用安全。通过 Homebrew 安装、SHA-256 校验或开源扫描，都不能代替 Apple 公证。
+
+如果你确认下载来自本仓库 Release 或对应的 Homebrew cask，已了解源码与安全说明，并决定信任它：
+
+1. 将应用放入「应用程序」（Homebrew 默认已完成），先尝试打开一次。
+2. 关闭警告弹窗，不要选择「移到废纸篓」。
+3. 打开「苹果菜单 → 系统设置 → 隐私与安全」。
+4. 向下滚动到「安全性」，找到 Codex Accounts 被阻止的提示，点击「仍要打开 / Open Anyway」。
+5. 按要求使用密码或 Touch ID 确认，再点击「打开」。系统会为这个应用保存例外；以后更新版本可能需要再次批准。
+
+找不到「仍要打开」时，重新尝试打开应用，再返回设置查看。公司管理的 Mac 若限制此操作，请联系管理员。如果提示的是「将损坏你的电脑」、明确检出恶意软件或「应用已损坏」，则不适用以上步骤，应停止并排查。
+
+无需关闭整个系统的 Gatekeeper，也不要用终端命令清除隔离标记；本项目安装器不会这么做。也可以审查源码后自行编译。未来要解决缺少发行者验证的问题，需要完成 Developer ID 签名和 Apple 公证；当前版本尚未完成。
+
+随后出现的「钥匙串访问」是另一项权限，用于读取本工具保存的账号，请单独核对后决定是否允许。
+
+[Apple 官方首次打开说明](https://support.apple.com/en-us/102445)。
 
 更新：`brew update` 后执行 `brew upgrade --cask braklouis/tap/codex-accounts`。
 

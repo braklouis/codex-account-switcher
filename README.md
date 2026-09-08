@@ -40,9 +40,25 @@ Update with `brew update` followed by `brew upgrade --cask braklouis/tap/codex-a
 
 The tap is maintained by this project; this is not a listing in the official Homebrew cask repository. The cask verifies the release ZIP with a pinned SHA-256 and does not run credential-changing installation scripts.
 
-### macOS first launch
+### macOS first launch: Apple cannot verify the app
 
-The release is **ad-hoc signed, not Developer ID signed or notarized**. Gatekeeper may block first launch. Only if you trust the downloaded release, use macOS **System Settings → Privacy & Security → Open Anyway** after attempting to open the app. The installer does not disable Gatekeeper or remove quarantine. Alternatively, build from source below.
+You may see a warning that Apple cannot verify Codex Accounts is free of malware. This release is **ad-hoc signed**, but has **no Apple Developer ID signature or Apple notarization**. Ad-hoc signing does not verify the publisher's identity. This warning means Apple cannot provide that verification; it is not itself a positive malware detection, nor does it prove the app is safe. Homebrew installation and SHA-256 verification do not replace notarization.
+
+If you downloaded this release from this repository or its linked Homebrew cask, have reviewed the source/security information, and choose to trust it:
+
+1. Move the app to **Applications** (Homebrew normally does this), then try opening it once.
+2. Dismiss the warning without moving the app to Trash.
+3. Open **Apple menu → System Settings → Privacy & Security**.
+4. Scroll to **Security**, find the message about Codex Accounts, and click **Open Anyway**.
+5. Authenticate if prompted, then confirm **Open**. macOS saves an exception for this app; an update may require approval again.
+
+If Open Anyway is missing, try opening the app again, then return to Settings. On an organization-managed Mac, contact your administrator if policy prevents approval. A separate warning that the app **will damage your computer**, contains malware, or is damaged is not covered by these instructions: stop and investigate rather than overriding it.
+
+Do not disable Gatekeeper globally or remove quarantine with terminal commands. The installer does neither. You can also review and build the source yourself. A later Developer ID-signed and notarized release would address the missing publisher verification; the current release has not completed that process.
+
+A subsequent **Keychain access** prompt is separate: the app needs access to its saved accounts. Read that prompt carefully before approving.
+
+[Apple's official first-launch guidance](https://support.apple.com/en-us/102445).
 
 ## Download manually
 
