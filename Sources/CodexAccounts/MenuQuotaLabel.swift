@@ -42,9 +42,17 @@ struct MenuQuotaLabel: View {
         let width: CGFloat = 18 + (numbers ? 34 : 0) + (bars ? 43 : 0) + (numbers && bars ? 4 : 0)
         let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
-            for (index, item) in [(shortLabel, short, NSColor(srgbRed: 0.55, green: 0.87, blue: 0.98, alpha: 1)), (L10n.isEnglish ? "W" : "周", weekly, NSColor(srgbRed: 0.77, green: 0.70, blue: 0.98, alpha: 1))].enumerated() {
+            let candidates: [(String, Double?, NSColor)] = [
+                (shortLabel, short, NSColor(srgbRed: 0.55, green: 0.87, blue: 0.98, alpha: 1)),
+                (L10n.isEnglish ? "W" : "周", weekly, NSColor(srgbRed: 0.77, green: 0.70, blue: 0.98, alpha: 1))
+            ]
+            let available = candidates.filter { $0.1 != nil }
+            // Some plans expose only a weekly window. Do not draw a phantom
+            // short-term meter or borrow a different model's quota.
+            let rows = available.isEmpty ? [("", nil as Double?, NSColor.secondaryLabelColor)] : available
+            for (index, item) in rows.enumerated() {
                 let (name, value, color) = item
-                let y: CGFloat = index == 0 ? 11 : 0
+                let y: CGFloat = rows.count == 1 ? 5.5 : (index == 0 ? 11 : 0)
                 let textColor = value == nil ? NSColor.secondaryLabelColor : color
                 let small = NSFont.systemFont(ofSize: 8, weight: .semibold)
                 (name as NSString).draw(in: NSRect(x: 0, y: y + 1, width: 19, height: 10), withAttributes: [.font: small, .foregroundColor: textColor])
@@ -54,7 +62,7 @@ struct MenuQuotaLabel: View {
                     (text as NSString).draw(in: NSRect(x: 18, y: y - 1, width: 34, height: 12),
                         withAttributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold), .foregroundColor: textColor, .paragraphStyle: paragraph])
                 }
-                if bars {
+                if bars && value != nil {
                     let x: CGFloat = numbers ? 56 : 18
                     let proportion = max(0, min(100, value ?? 0)) / 100
                     for segment in 0..<8 {
@@ -67,9 +75,9 @@ struct MenuQuotaLabel: View {
                             NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: rect.width * fraction, height: rect.height), xRadius: 0.7, yRadius: 0.7).fill()
                         }
                     }
-                    if value == nil {
-                        ("—" as NSString).draw(at: NSPoint(x: x + 15, y: y - 1), withAttributes: [.font: small, .foregroundColor: NSColor.labelColor])
-                    }
+                }
+                if !numbers && value == nil {
+                    ("—" as NSString).draw(at: NSPoint(x: 25, y: y), withAttributes: [.font: small, .foregroundColor: textColor])
                 }
             }
         image.unlockFocus()
