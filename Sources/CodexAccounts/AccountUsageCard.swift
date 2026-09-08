@@ -14,6 +14,7 @@ struct AppBrandIcon: View {
 }
 
 struct AccountUsageCard: View {
+    @ObservedObject private var language = AppPreferences.shared
     let profile: Profile
     @ObservedObject var store: AccountStore
     let onSwitch: () -> Void
@@ -43,7 +44,7 @@ struct AccountUsageCard: View {
                     .frame(width: 46, height: 46).background(green.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title).font(.system(size: 15, weight: .semibold)).lineLimit(1).help(profile.name)
-                    Text(profile.snapshot?.email ?? "需要重新登录").font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(profile.snapshot?.email ?? L10n.text("需要重新登录")).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 4)
                 Text((profile.snapshot?.plan ?? "unknown").uppercased())
@@ -52,8 +53,8 @@ struct AccountUsageCard: View {
                     .background(.primary.opacity(0.05), in: Capsule())
                 if showsManagement {
                 Menu {
-                    Button("重命名", action: onRename)
-                    Button("移除账号", role: .destructive, action: onRemove)
+                    Button(L10n.text("重命名"), action: onRename)
+                    Button(L10n.text("移除账号"), role: .destructive, action: onRemove)
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 14, weight: .medium))
@@ -63,8 +64,8 @@ struct AccountUsageCard: View {
                     .menuStyle(.borderlessButton)
                     .menuIndicator(.hidden)
                     .fixedSize()
-                    .help("更多账号操作")
-                    .accessibilityLabel("更多账号操作")
+                    .help(L10n.text("更多账号操作"))
+                    .accessibilityLabel(L10n.text("更多账号操作"))
                     .disabled(store.busy)
                 }
             }
@@ -80,27 +81,27 @@ struct AccountUsageCard: View {
                                 }
                             }.padding(.top, 12)
                         } label: {
-                            Text("其他额度 · \(buckets.count - 1)").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
+                            Text(L10n.isEnglish ? "Other quotas · \(buckets.count - 1)" : "其他额度 · \(buckets.count - 1)").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
                         }.tint(green)
                     }
                 }.opacity(store.quotaErrors[profile.id] == nil ? 1 : 0.5)
             } else {
                 HStack(spacing: 8) {
                     Image(systemName: "chart.bar.xaxis")
-                    Text("尚未读取额度").font(.system(size: 12))
+                    Text(L10n.text("尚未读取额度")).font(.system(size: 12))
                     Spacer()
-                    Text("点击上方刷新").font(.system(size: 11))
+                    Text(L10n.text("点击上方刷新")).font(.system(size: 11))
                 }.foregroundStyle(.secondary).padding(.vertical, 12)
             }
             if let error = store.quotaErrors[profile.id] {
-                Label(error, systemImage: "exclamationmark.circle").font(.system(size: 11)).foregroundStyle(.orange)
+                Label(L10n.text(error), systemImage: "exclamationmark.circle").font(.system(size: 11)).foregroundStyle(.orange)
             }
             HStack {
                 if active {
-                    Label("当前使用", systemImage: "checkmark.circle.fill")
+                    Label(L10n.text("当前使用"), systemImage: "checkmark.circle.fill")
                         .font(.system(size: 11, weight: .medium)).foregroundStyle(green)
                 } else {
-                    Button(action: onSwitch) { Label("切换到此账号", systemImage: "arrow.left.arrow.right") }
+                    Button(action: onSwitch) { Label(L10n.text("切换到此账号"), systemImage: "arrow.left.arrow.right") }
                         .font(.system(size: 11, weight: .medium)).buttonStyle(.borderless).tint(green).disabled(store.busy)
                 }
                 Spacer()
@@ -117,6 +118,7 @@ struct AccountUsageCard: View {
     }
     private func updateLabel(_ date: Date, now: Date) -> String {
         let mins = max(0, Int(now.timeIntervalSince(date) / 60))
+        if L10n.isEnglish { return mins == 0 ? "Updated just now" : "Updated \(mins)m ago" }
         let prefix = store.quotaErrors[profile.id] == nil ? "更新" : "上次成功读取"
         return mins == 0 ? "刚刚\(prefix)" : "\(mins) 分钟前\(prefix)"
     }
@@ -126,25 +128,26 @@ struct AccountUsageCard: View {
                 Text(key == "codex" ? "CODEX" : (bucket.limitName ?? key).uppercased())
                     .font(.system(size: 10, weight: .semibold, design: .monospaced)).tracking(1).foregroundStyle(.secondary)
                 Spacer()
-                Text("剩余额度").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text(L10n.text("剩余额度")).font(.system(size: 10)).foregroundStyle(.secondary)
             }
             if let window = bucket.primary { QuotaMeter(window: window, tint: green) }
             if let window = bucket.secondary { QuotaMeter(window: window, tint: green) }
             if bucket.primary == nil && bucket.secondary == nil {
-                Text("服务未提供时间窗口").font(.caption).foregroundStyle(.secondary)
+                Text(L10n.text("服务未提供时间窗口")).font(.caption).foregroundStyle(.secondary)
             }
         }
     }
 }
 
 struct QuotaMeter: View {
+    @ObservedObject private var language = AppPreferences.shared
     let window: QuotaWindow
     let tint: Color
     private var color: Color { window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : tint }
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
-                Text(window.title).font(.system(size: 12, weight: .medium))
+                Text(L10n.text(window.title)).font(.system(size: 12, weight: .medium))
                 Spacer()
                 Text("\(Int(window.remaining))").font(.system(size: 22, weight: .semibold, design: .rounded)).monospacedDigit()
                 Text("%").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
@@ -171,7 +174,8 @@ struct QuotaMeter: View {
     }
     private func resetLabel(_ timestamp: Double, now: Date) -> String {
         let mins = Int(ceil((timestamp - now.timeIntervalSince1970) / 60))
-        if mins <= 0 { return "已到重置时间 · 请刷新" }
+        if L10n.isEnglish { return mins <= 0 ? "Reset time reached · Refresh" : "Resets in \(mins / 1440)d \(mins % 1440 / 60)h \(mins % 60)m" }
+        if mins <= 0 { return L10n.text("已到重置时间 · 请刷新") }
         if mins >= 1440 { return "\(mins / 1440) 天 \(mins % 1440 / 60) 小时后重置" }
         if mins >= 60 { return "\(mins / 60) 小时 \(mins % 60) 分钟后重置" }
         return "\(mins) 分钟后重置"

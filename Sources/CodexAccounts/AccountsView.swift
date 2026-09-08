@@ -2,6 +2,7 @@ import SwiftUI
 import SwitcherCore
 
 struct AccountsView: View {
+    @ObservedObject private var language = AppPreferences.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
     @State private var switchTarget: Profile?
@@ -15,8 +16,8 @@ struct AccountsView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 7) {
                     Text("CODEX ACCOUNTS").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(accent)
-                    Text("你的账号，一目了然").font(.system(size: 28, weight: .semibold))
-                    Text("查看可用额度，为下一项任务选好账号。")
+                    Text(L10n.text("你的账号，一目了然")).font(.system(size: 28, weight: .semibold))
+                    Text(L10n.text("查看可用额度，为下一项任务选好账号。"))
                         .font(.system(size: 13)).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -24,30 +25,30 @@ struct AccountsView: View {
             }.padding(28)
             HStack(spacing: 10) {
                 Circle().fill(store.activeEmail == nil ? .gray : accent).frame(width: 7, height: 7)
-                Text("当前登录").foregroundStyle(.secondary)
-                Text(store.activeEmail ?? "尚未登录 / 登录不可读").lineLimit(1).textSelection(.enabled)
+                Text(L10n.text("当前登录")).foregroundStyle(.secondary)
+                Text(store.activeEmail ?? L10n.text("尚未登录 / 登录不可读")).lineLimit(1).textSelection(.enabled)
                 Spacer()
-                if store.demo { Text("演示").foregroundStyle(.orange) }
+                if store.demo { Text(L10n.text("演示")).foregroundStyle(.orange) }
             }.font(.system(size: 12)).padding(.horizontal, 28).padding(.bottom, 20)
             Divider()
             HStack {
-                Text("已保存账号").font(.headline)
+                Text(L10n.text("已保存账号")).font(.headline)
                 Text("\(store.profiles.count)").foregroundStyle(.secondary)
                 Spacer()
-                Button { store.refreshQuotas() } label: { Label("刷新额度", systemImage: "arrow.clockwise") }
+                Button { store.refreshQuotas() } label: { Label(L10n.text("刷新额度"), systemImage: "arrow.clockwise") }
                     .disabled(store.busy || store.profiles.isEmpty)
             }.padding(.horizontal, 28).padding(.vertical, 18)
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if !store.loaded {
                         ContentUnavailableView {
-                            Label("账号库尚未解锁", systemImage: "lock.shield")
-                        } description: { Text("允许钥匙串访问后重试，原账号数据会保留。") }
-                        actions: { Button("重新读取") { store.reload() } }
+                            Label(L10n.text("账号库尚未解锁"), systemImage: "lock.shield")
+                        } description: { Text(L10n.text("允许钥匙串访问后重试，原账号数据会保留。")) }
+                        actions: { Button(L10n.text("重新读取")) { store.reload() } }
                     } else if store.profiles.isEmpty {
                         ContentUnavailableView {
-                            Label("先保存你的第一个账号", systemImage: "person.crop.circle.badge.plus")
-                        } description: { Text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。") }
+                            Label(L10n.text("先保存你的第一个账号"), systemImage: "person.crop.circle.badge.plus")
+                        } description: { Text(L10n.text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。")) }
                     }
                     ForEach(store.profiles) { profile in accountCard(profile) }
                 }.padding(.horizontal, 28).padding(.bottom, 20)
@@ -55,18 +56,18 @@ struct AccountsView: View {
             Divider()
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Button { store.addAccount() } label: { Label("登录新账号", systemImage: "plus") }
+                    Button { store.addAccount() } label: { Label(L10n.text("登录新账号"), systemImage: "plus") }
                         .buttonStyle(.borderedProminent).tint(accent)
-                    Button("保存当前账号") { store.importCurrent() }
-                    Button("设置…") { openWindow(id: "preferences") }
+                    Button(L10n.text("保存当前账号")) { store.importCurrent() }
+                    Button(L10n.text("设置…")) { openWindow(id: "preferences") }
                     Spacer()
                     if store.busy { ProgressView().controlSize(.small) }
                 }.disabled(store.busy || !store.loaded)
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: store.demo ? "eye" : "lock.shield")
-                    Text(store.status).fixedSize(horizontal: false, vertical: true)
+                    Text(L10n.text(store.status)).fixedSize(horizontal: false, vertical: true)
                     if store.busy && store.status.contains("浏览器") {
-                        Button("取消") { store.cancelLogin() }.buttonStyle(.link)
+                        Button(L10n.text("取消")) { store.cancelLogin() }.buttonStyle(.link)
                     }
                 }.font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(24)
@@ -76,24 +77,24 @@ struct AccountsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .chooseAccount)) { note in
             if let id = note.object as? UUID { switchTarget = store.profiles.first { $0.id == id } }
         }
-        .alert("切换并重新打开 Codex？", isPresented: Binding(get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } })) {
-            Button("取消", role: .cancel) { switchTarget = nil }
-            Button("切换并重启") { if let target = switchTarget { store.switchTo(target) }; switchTarget = nil }
+        .alert(L10n.text("切换并重新打开 Codex？"), isPresented: Binding(get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } })) {
+            Button(L10n.text("取消"), role: .cancel) { switchTarget = nil }
+            Button(L10n.text("切换并重启")) { if let target = switchTarget { store.switchTo(target) }; switchTarget = nil }
         } message: {
-            Text("将切换到「\(switchTarget?.name ?? "")」。请先结束正在运行的 Codex 任务和命令行会话。切换会关闭并重新打开桌面应用；本地任务历史继续共用。")
+            Text(L10n.isEnglish ? "Switch to \(switchTarget?.name ?? ""). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(switchTarget?.name ?? "")」。请先结束正在运行的 Codex 任务和命令行会话。切换会关闭并重新打开桌面应用；本地任务历史继续共用。")
         }
-        .alert("移除保存的账号？", isPresented: Binding(get: { removeTarget != nil }, set: { if !$0 { removeTarget = nil } })) {
-            Button("取消", role: .cancel) { removeTarget = nil }
-            Button("移除", role: .destructive) { if let target = removeTarget { store.remove(target) }; removeTarget = nil }
-        } message: { Text("仅从本工具移除，当前 Codex 登录不会退出。以后可重新添加。") }
-        .alert("账号名称", isPresented: Binding(get: { renameTarget != nil }, set: { if !$0 { renameTarget = nil } })) {
-            TextField("例如：主力账号", text: $name)
-            Button("取消", role: .cancel) { renameTarget = nil }
-            Button("保存") { if let target = renameTarget { store.rename(target, to: name) }; renameTarget = nil }
+        .alert(L10n.text("移除保存的账号？"), isPresented: Binding(get: { removeTarget != nil }, set: { if !$0 { removeTarget = nil } })) {
+            Button(L10n.text("取消"), role: .cancel) { removeTarget = nil }
+            Button(L10n.text("移除"), role: .destructive) { if let target = removeTarget { store.remove(target) }; removeTarget = nil }
+        } message: { Text(L10n.text("仅从本工具移除，当前 Codex 登录不会退出。以后可重新添加。")) }
+        .alert(L10n.text("账号名称"), isPresented: Binding(get: { renameTarget != nil }, set: { if !$0 { renameTarget = nil } })) {
+            TextField(L10n.text("例如：主力账号"), text: $name)
+            Button(L10n.text("取消"), role: .cancel) { renameTarget = nil }
+            Button(L10n.text("保存")) { if let target = renameTarget { store.rename(target, to: name) }; renameTarget = nil }
         }
-        .alert("操作未完成", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
-            Button("好") { store.error = nil }
-        } message: { Text(store.error ?? "") }
+        .alert(L10n.text("操作未完成"), isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
+            Button(L10n.text("好")) { store.error = nil }
+        } message: { Text(L10n.text(store.error ?? "")) }
     }
 
     private func accountCard(_ profile: Profile) -> some View {

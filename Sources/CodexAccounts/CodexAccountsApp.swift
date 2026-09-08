@@ -12,7 +12,7 @@ import SwitcherCore
         }
         .defaultSize(width: 700, height: 780)
         .windowResizability(.contentMinSize)
-        Window("设置", id: "preferences") { PreferencesView() }.windowResizability(.contentSize)
+        Window(L10n.text("设置"), id: "preferences") { PreferencesView() }.windowResizability(.contentSize)
         MenuBarExtra {
             MenuContent(store: store)
         } label: {
@@ -66,6 +66,7 @@ import SwitcherCore
 }
 
 struct MenuContent: View {
+    @ObservedObject private var language = AppPreferences.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
     @State private var switchTarget: Profile?
@@ -77,13 +78,13 @@ struct MenuContent: View {
                 AppBrandIcon().frame(width: 36, height: 36)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Codex Accounts").font(.system(size: 14, weight: .semibold))
-                    Text("各账号剩余额度").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text(L10n.text("各账号剩余额度")).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 if store.busy { ProgressView().controlSize(.small) }
                 Button { store.refreshQuotas() } label: {
                     Image(systemName: "arrow.clockwise").frame(width: 26, height: 26)
-                }.buttonStyle(.borderless).help("刷新额度").accessibilityLabel("刷新额度")
+                }.buttonStyle(.borderless).help(L10n.text("刷新额度")).accessibilityLabel(L10n.text("刷新额度"))
                     .disabled(store.busy || store.profiles.isEmpty)
             }.padding(16)
             Divider()
@@ -92,8 +93,8 @@ struct MenuContent: View {
                     if store.profiles.isEmpty {
                         VStack(spacing: 8) {
                             Image(systemName: "person.crop.circle.badge.plus").font(.title)
-                            Text(store.loaded ? "先添加一个账号" : "请解锁账号库")
-                            Button("打开账号管理", action: manage)
+                            Text(store.loaded ? L10n.text("先添加一个账号") : L10n.text("请解锁账号库"))
+                            Button(L10n.text("打开账号管理"), action: manage)
                         }.padding(28)
                     }
                     ForEach(store.profiles) { profile in
@@ -105,10 +106,10 @@ struct MenuContent: View {
             }.frame(height: store.profiles.isEmpty ? 160 : 480)
             Divider()
             HStack {
-                Button("管理账号…", action: manage)
-                Button("设置…") { openWindow(id: "preferences"); NSApp.activate(ignoringOtherApps: true) }
+                Button(L10n.text("管理账号…"), action: manage)
+                Button(L10n.text("设置…")) { openWindow(id: "preferences"); NSApp.activate(ignoringOtherApps: true) }
                 Spacer()
-                Button("退出") { NSApp.terminate(nil) }.disabled(store.busy)
+                Button(L10n.text("退出")) { NSApp.terminate(nil) }.disabled(store.busy)
             }.font(.system(size: 12)).buttonStyle(.borderless).padding(16)
         }
         .frame(width: 400)
@@ -122,15 +123,15 @@ struct MenuContent: View {
                 return Date().timeIntervalSince(date) > 60
             }) { store.refreshQuotas() }
         }
-        .alert("切换并重新打开 Codex？", isPresented: Binding(
+        .alert(L10n.text("切换并重新打开 Codex？"), isPresented: Binding(
             get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } })) {
-            Button("取消", role: .cancel) { switchTarget = nil }
-            Button("切换并重启") {
+            Button(L10n.text("取消"), role: .cancel) { switchTarget = nil }
+            Button(L10n.text("切换并重启")) {
                 if let target = switchTarget { store.switchTo(target) }
                 switchTarget = nil
             }
         } message: {
-            Text("将切换到「\(switchTarget?.name ?? "")」。请先结束正在运行的 Codex 任务和命令行会话，桌面应用会关闭并重新打开。")
+            Text(L10n.isEnglish ? "Switch to \(switchTarget?.name ?? ""). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(switchTarget?.name ?? "")」。请先结束正在运行的 Codex 任务和命令行会话，桌面应用会关闭并重新打开。")
         }
     }
     private func manage() {

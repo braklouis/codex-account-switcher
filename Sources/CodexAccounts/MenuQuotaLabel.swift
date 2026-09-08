@@ -15,8 +15,8 @@ struct MenuQuotaLabel: View {
             let week = valid(summary.weekly, now: Date())
             Image(nsImage: StatusQuotaDrawing.image(style: preferences.menuQuotaStyle,
                 short: short?.remaining, weekly: week?.remaining, shortLabel: label(short)))
-                .accessibilityLabel("Codex 剩余额度：短期 \(value(short))，每周 \(value(week))")
-                .help("\(profile?.name ?? "未保存当前账号") · 短期 \(value(short)) · 每周 \(value(week))。点击查看详情。")
+                .accessibilityLabel(L10n.isEnglish ? "Codex remaining: short-term \(value(short)), weekly \(value(week))" : "Codex 剩余额度：短期 \(value(short))，每周 \(value(week))")
+                .help(L10n.isEnglish ? "Short-term \(value(short)) · Weekly \(value(week)). Click for details." : "\(profile?.name ?? L10n.text("未保存当前账号")) · 短期 \(value(short)) · 每周 \(value(week))。点击查看详情。")
     }
     private func valid(_ window: QuotaWindow?, now: Date) -> QuotaWindow? {
         guard let window else { return nil }
@@ -24,10 +24,10 @@ struct MenuQuotaLabel: View {
         return window
     }
     private func label(_ window: QuotaWindow?) -> String {
-        guard let mins = window?.windowDurationMins else { return "短" }
+        guard let mins = window?.windowDurationMins else { return L10n.isEnglish ? "S" : "短" }
         return mins % 60 == 0 ? "\(mins / 60)h" : "\(mins)m"
     }
-    private func value(_ window: QuotaWindow?) -> String { window.map { "\(Int($0.remaining))%" } ?? "暂不可用" }
+    private func value(_ window: QuotaWindow?) -> String { window.map { "\(Int($0.remaining))%" } ?? L10n.text("暂不可用") }
 }
 
 /// Rasterize into a native status-item image: macOS menu labels otherwise flatten custom SwiftUI layouts.
@@ -35,14 +35,14 @@ struct MenuQuotaLabel: View {
 @MainActor enum StatusQuotaDrawing {
     private static var cache: [String: NSImage] = [:]
     static func image(style: String, short: Double?, weekly: Double?, shortLabel: String = "5h") -> NSImage {
-        let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(shortLabel)|\(NSApp.effectiveAppearance.name.rawValue)"
+        let key = "\(L10n.isEnglish)|\(style)|\(String(describing: short))|\(String(describing: weekly))|\(shortLabel)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
         let numbers = style != "bars"
         let bars = style != "numbers"
         let width: CGFloat = 18 + (numbers ? 34 : 0) + (bars ? 43 : 0) + (numbers && bars ? 4 : 0)
         let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
-            for (index, item) in [(shortLabel, short, NSColor.systemPink), ("周", weekly, NSColor.systemCyan)].enumerated() {
+            for (index, item) in [(shortLabel, short, NSColor(srgbRed: 0.55, green: 0.87, blue: 0.98, alpha: 1)), (L10n.isEnglish ? "W" : "周", weekly, NSColor(srgbRed: 0.77, green: 0.70, blue: 0.98, alpha: 1))].enumerated() {
                 let (name, value, color) = item
                 let y: CGFloat = index == 0 ? 11 : 0
                 let textColor = value == nil ? NSColor.secondaryLabelColor : color
@@ -84,11 +84,11 @@ struct MenuQuotaPreview: View {
     let style: String
     var body: some View {
         HStack(spacing: 12) {
-            Text("样式预览").font(.caption).foregroundStyle(.secondary)
+            Text(L10n.text("样式预览")).font(.caption).foregroundStyle(.secondary)
             Image(nsImage: StatusQuotaDrawing.image(style: style, short: 68, weekly: 92))
                 .padding(.horizontal, 10).padding(.vertical, 5)
                 .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
-            Text("示例数据").font(.caption2).foregroundStyle(.secondary)
+            Text(L10n.text("示例数据")).font(.caption2).foregroundStyle(.secondary)
         }
     }
 }
