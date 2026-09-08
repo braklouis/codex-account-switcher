@@ -10,9 +10,9 @@ import SwitcherCore
             AccountsView(store: store)
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in store.refreshActive() }
         }
-        .defaultSize(width: 680, height: 680)
+        .defaultSize(width: 700, height: 780)
         .windowResizability(.contentMinSize)
-        MenuBarExtra("Codex Accounts", systemImage: "person.2.badge.key.fill") {
+        MenuBarExtra("Codex Accounts", systemImage: "arrow.left.arrow.right.circle") {
             MenuContent(store: store)
         }
     }

@@ -27,3 +27,10 @@ CLANG_MODULE_CACHE_PATH=/private/tmp/codex-accounts-module-cache swift test --di
 - 错误分类区分协议不兼容、认证过期、网络、限流和未知服务错误，不显示原始服务文本。
 - 18 项 XCTest 全部通过，Release 打包及签名校验通过。
 - 重新打开 0.1.1 应用并刷新，两个已保存账号均成功展示真实额度、多 bucket 和重置时间；未切换或重启 Codex 桌面应用。
+
+## 0.2.0 视觉更新
+
+- 原创 ImageGen 图标已加入应用资源与 Info.plist；打包生成 16–1024px ICNS。
+- SwiftUI 额度卡片改为纵向百分比、渐变细条和分钟级更新的重置倒计时；主要 Codex bucket 优先，其余可展开，保留服务原始窗口信息。
+- Debug / Release 编译及签名校验通过；实际窗口截图检查通过，两个真实账号成功刷新，主要窗口显示百分比、重置时间和更新时间。认证及切换逻辑未改动。
+- 参考 CodexBar 的额度窗口与倒计时展示思路，未复制其源码或图标。

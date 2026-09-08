@@ -13,14 +13,24 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>CodexAccounts</string>
 <key>CFBundleName</key><string>Codex Accounts</string>
 <key>CFBundleDisplayName</key><string>Codex Accounts</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.1</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>LSMultipleInstancesProhibited</key><true/>
 </dict></plist>
 PLIST
+ICONSET="$PWD/.build/AppIcon.iconset"
+mkdir -p "$ICONSET"
+for SIZE in 16 32 128 256 512; do
+    sips -z "$SIZE" "$SIZE" Assets/AppIcon.png --out "$ICONSET/icon_${SIZE}x${SIZE}.png" >/dev/null
+    DOUBLE=$(( SIZE * 2 ))
+    sips -z "$DOUBLE" "$DOUBLE" Assets/AppIcon.png --out "$ICONSET/icon_${SIZE}x${SIZE}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+cp Assets/AppIcon.png "$APP/Contents/Resources/AppIcon.png"
 codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
 codesign --verify --strict "$APP"
 print "Built: $APP"
