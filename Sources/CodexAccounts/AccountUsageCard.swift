@@ -19,6 +19,7 @@ struct AccountUsageCard: View {
     let onSwitch: () -> Void
     let onRename: () -> Void
     let onRemove: () -> Void
+    var showsManagement = true
     @State private var expanded = false
     private let green = Color(red: 0.10, green: 0.52, blue: 0.41)
     private var active: Bool { profile.snapshot?.identity == store.activeIdentity }
@@ -49,6 +50,7 @@ struct AccountUsageCard: View {
                     .font(.system(size: 9, weight: .bold, design: .rounded)).tracking(0.7)
                     .padding(.horizontal, 8).padding(.vertical, 5)
                     .background(.primary.opacity(0.05), in: Capsule())
+                if showsManagement {
                 Menu {
                     Button("重命名", action: onRename)
                     Button("移除账号", role: .destructive, action: onRemove)
@@ -64,6 +66,7 @@ struct AccountUsageCard: View {
                     .help("更多账号操作")
                     .accessibilityLabel("更多账号操作")
                     .disabled(store.busy)
+                }
             }
             if let first = buckets.first {
                 VStack(alignment: .leading, spacing: 16) {

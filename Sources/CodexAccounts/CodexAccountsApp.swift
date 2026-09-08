@@ -14,7 +14,7 @@ import SwitcherCore
         .windowResizability(.contentMinSize)
         MenuBarExtra("Codex Accounts", systemImage: "arrow.left.arrow.right.circle") {
             MenuContent(store: store)
-        }
+        }.menuBarExtraStyle(.window)
     }
 }
 
@@ -64,26 +64,73 @@ import SwitcherCore
 struct MenuContent: View {
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
+    @State private var switchTarget: Profile?
+    private let tint = Color(red: 0.10, green: 0.52, blue: 0.41)
+
     var body: some View {
-        Text(store.activeEmail ?? "尚未读取当前账号")
-        Divider()
-        ForEach(store.profiles) { profile in
-            Button {
-                openWindow(id: "accounts")
-                NSApp.activate(ignoringOtherApps: true)
-                Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 200_000_000)
-                    NotificationCenter.default.post(name: .chooseAccount, object: profile.id)
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                AppBrandIcon().frame(width: 36, height: 36)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Codex Accounts").font(.system(size: 14, weight: .semibold))
+                    Text("各账号剩余额度").font(.system(size: 11)).foregroundStyle(.secondary)
                 }
-            } label: {
-                Label(profile.name, systemImage: profile.snapshot?.identity == store.activeIdentity ? "checkmark.circle.fill" : "person.crop.circle")
-            }.disabled(store.busy)
+                Spacer()
+                if store.busy { ProgressView().controlSize(.small) }
+                Button { store.refreshQuotas() } label: {
+                    Image(systemName: "arrow.clockwise").frame(width: 26, height: 26)
+                }.buttonStyle(.borderless).help("刷新额度").accessibilityLabel("刷新额度")
+                    .disabled(store.busy || store.profiles.isEmpty)
+            }.padding(16)
+            Divider()
+            ScrollView {
+                VStack(spacing: 12) {
+                    if store.profiles.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "person.crop.circle.badge.plus").font(.title)
+                            Text(store.loaded ? "先添加一个账号" : "请解锁账号库")
+                            Button("打开账号管理", action: manage)
+                        }.padding(28)
+                    }
+                    ForEach(store.profiles) { profile in
+                        AccountUsageCard(profile: profile, store: store,
+                            onSwitch: { switchTarget = profile },
+                            onRename: manage, onRemove: manage, showsManagement: false)
+                    }
+                }.padding(12)
+            }.frame(height: store.profiles.isEmpty ? 160 : 480)
+            Divider()
+            HStack {
+                Button("管理账号…", action: manage)
+                Spacer()
+                Button("退出") { NSApp.terminate(nil) }.disabled(store.busy)
+            }.font(.system(size: 12)).buttonStyle(.borderless).padding(16)
         }
-        Divider()
-        Button("管理账号…") { openWindow(id: "accounts"); NSApp.activate(ignoringOtherApps: true) }
-        Button("刷新额度") { store.refreshQuotas() }.disabled(store.busy || store.profiles.isEmpty)
-        Divider()
-        Button("退出 Codex Accounts") { NSApp.terminate(nil) }.disabled(store.busy)
+        .frame(width: 400)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .tint(tint)
+        .onAppear {
+            store.refreshActive()
+            // Read on open if missing or older than a minute; both windows share one store.
+            if !store.busy && store.loaded && store.profiles.contains(where: {
+                guard let date = store.quotaDates[$0.id] else { return true }
+                return Date().timeIntervalSince(date) > 60
+            }) { store.refreshQuotas() }
+        }
+        .alert("切换并重新打开 Codex？", isPresented: Binding(
+            get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } })) {
+            Button("取消", role: .cancel) { switchTarget = nil }
+            Button("切换并重启") {
+                if let target = switchTarget { store.switchTo(target) }
+                switchTarget = nil
+            }
+        } message: {
+            Text("将切换到「\(switchTarget?.name ?? "")」。请先结束正在运行的 Codex 任务和命令行会话，桌面应用会关闭并重新打开。")
+        }
+    }
+    private func manage() {
+        openWindow(id: "accounts")
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
