@@ -1,69 +1,86 @@
 # Codex Accounts
 
-一个自用的原生 macOS Codex 会员账号切换工具。SwiftUI + 系统钥匙串，无第三方依赖。
+<img src="Assets/AppIcon.png" width="96" alt="Codex Accounts icon">
 
-## 使用
+A small native macOS menu bar app for switching your own Codex accounts and checking remaining quota.
 
-1. 打开 `dist/Codex Accounts.app`。
-2. 点击「保存当前账号」，把当前 Codex 登录保存到系统钥匙串。
-3. 点击「登录新账号」，在官方浏览器页面中选择另一个账号。独立登录不会覆盖当前 Codex 登录。
-4. 点击「刷新额度」检查各账号，或在菜单栏选择账号。
-5. 完成正在进行的任务、退出其他 Codex CLI 会话后，选择「切换并重启」。
+**[简体中文](README.zh-CN.md)** · [Releases](https://github.com/braklouis/codex-account-switcher/releases) · [Security](SECURITY.md) · [MIT license](LICENSE)
 
-支持 macOS 14+，需要已经安装 Codex 桌面端。按 `com.openai.codex` 查找应用，兼容本机的 `ChatGPT.app` 和旧名称 `Codex.app`。本版本只支持默认 `~/.codex` 和文件型登录存储；发现显式 keyring/auto 配置时拒绝切换。不会改写 Codex 配置。
+## Features
 
-## 开发
+- Save multiple accounts in the local macOS Keychain; add accounts through the official browser sign-in.
+- Show short-term and weekly remaining quota directly in the menu bar: percentages, segmented bars, or both.
+- Light cyan and soft violet quota colors, detailed reset countdowns, and additional quota buckets.
+- Switch accounts with a confirmation and a graceful Codex restart; attempt rollback if switching fails.
+- Menu bar only mode, optional Dock icon, launch at login, and alerts below 75%, 50%, and 25%.
+- Simplified Chinese / English selection in Settings. Some low-level system and diagnostic messages may remain Chinese.
+- SwiftUI + AppKit, no third-party application dependencies, no telemetry or account upload service.
+
+This is an independent community project, not affiliated with or endorsed by OpenAI. It does not increase or reset your subscription limits.
+
+## Requirements
+
+- macOS 14 or later. The prebuilt release and Homebrew cask currently support **Apple Silicon only**.
+- The official Codex desktop app installed and launched at least once.
+- ChatGPT subscription sign-in with the default `~/.codex` home and file-based credential storage. API keys, custom homes, and explicit `keyring` / `auto` storage are not supported.
+- Intel source builds are not verified.
+
+## Install with Homebrew
 
 ```sh
-swift test --disable-sandbox
-zsh scripts/package.sh
-open 'dist/Codex Accounts.app'
+brew tap braklouis/tap
+brew install --cask braklouis/tap/codex-accounts
 ```
 
-演示模式使用虚构账号和内存数据，不访问钥匙串或真实登录：
+Update with `brew update` followed by `brew upgrade --cask braklouis/tap/codex-accounts`.
+
+The tap is maintained by this project; this is not a listing in the official Homebrew cask repository. The cask verifies the release ZIP with a pinned SHA-256 and does not run credential-changing installation scripts.
+
+### macOS first launch
+
+The release is **ad-hoc signed, not Developer ID signed or notarized**. Gatekeeper may block first launch. Only if you trust the downloaded release, use macOS **System Settings → Privacy & Security → Open Anyway** after attempting to open the app. The installer does not disable Gatekeeper or remove quarantine. Alternatively, build from source below.
+
+## Download manually
+
+Download `Codex-Accounts-0.4.0-arm64.zip` from [Releases](https://github.com/braklouis/codex-account-switcher/releases/latest), extract it, and move `Codex Accounts.app` into Applications. Checksums are included with the release.
+
+## Use
+
+1. Open Codex Accounts, then choose **Save current account** or **Add account**.
+2. Allow its Keychain access request. A rebuilt app may request access again because ad-hoc signatures change.
+3. Refresh quota, then open **Settings → Language / 语言** to select your language and menu bar style.
+4. Before switching, finish running Codex tasks and close CLI sessions; confirm **Switch and restart**.
+
+By default, the app stays in the menu bar, attempts to enable launch at login, and requests notification permission. These can be disabled in Settings. Keep the app in its installed location; after moving it, toggle launch at login off and on again.
+
+Quota checks run every five minutes while awake. Unknown, expired, or failed data is not treated as zero. Older values may remain dimmed in account cards. Notifications are deduplicated per account, window, and reset cycle.
+
+## Privacy and boundaries
+
+Credentials are held in a device-local, non-iCloud Keychain item. Account switching writes the official `~/.codex/auth.json` with mode `0600` through an atomic rename. Quota reads use the installed official Codex app-server in an isolated temporary home; access tokens travel over local stdio, not command-line arguments. The app does not send saved accounts to the maintainer or proxy API requests.
+
+**Switching accounts is not data isolation:** accounts share local Codex task history, projects, and the same home directory. Cloud tasks and permissions remain account-specific. Do not use concurrent CLI sessions or another switcher during a switch.
+
+Temporary login homes use `0700` permissions and are removed on normal completion. A crash or forced termination can leave private temporary files. The macOS account and its Keychain remain a trust boundary; this tool cannot protect credentials from a compromised local account. Read [SECURITY.md](SECURITY.md) for details and reporting guidance.
+
+## Build and contribute
+
+Install Apple's command-line developer tools with a Swift compiler compatible with this package (validated with Swift 6.3.3), then:
 
 ```sh
+git clone https://github.com/braklouis/codex-account-switcher.git
+cd codex-account-switcher
+swift test --disable-sandbox
+zsh scripts/package.sh
 open 'dist/Codex Accounts.app' --args --demo
 ```
 
-打包默认使用本机 ad-hoc 签名，未做 Apple 公证。每次重新编译后系统可能要求重新允许钥匙串访问；不要选择允许所有程序访问。若有开发者证书，可设置 `SIGN_IDENTITY` 后打包以保持签名身份。
+Demo mode uses synthetic accounts and never reads or changes real credentials. Run without `--demo` to use real accounts. `--self-check` performs an isolated Keychain and app-server integration check; it is not a real multi-account switching test.
 
-## 工作方式
+Release builds default to ad-hoc signing. Maintainers may provide `SIGN_IDENTITY` to the packaging script; notarization is a separate step and is not performed by this script. The package is native to the build host architecture.
 
-- 账号及登录快照作为一个版本化的条目保存到本机钥匙串，不同步 iCloud。服务名 `local.codexaccounts.vault.v1`。
-- 只有选择切换时才替换 `~/.codex/auth.json`，写入文件从创建起权限即为 0600，通过同目录原子重命名提交。
-- 退出前后均保存当前登录，保留关机期间刷新后的令牌。退出被拒绝或超时，不覆盖登录；写入/启动失败时尝试恢复旧登录并重新打开应用。
-- 新增登录使用本机官方 `codex app-server`、独立临时 `CODEX_HOME` 和浏览器 OAuth。正常完成/取消后终止自己的辅助进程并删除临时目录。异常断电/强制杀死本工具时，系统临时目录可能留有 `codex-accounts-*` 登录临时文件（目录 0700），可在没有登录操作时删除。
-- 额度使用官方 app-server 的 `chatgptAuthTokens` 与 `account/rateLimits/read`，只向独立子进程传入访问令牌，不传刷新令牌。读取额度不会主动轮换登录刷新令牌。过期账号可再次登录更新。
-- 额度支持多 bucket，按服务返回的窗口时长展示；未知数据不会显示为零，失败后保留旧值并明确标记。
-- 无遥测、云同步、后台自动换号、API 代理或额度重置调用。OAuth/额度通信由本机 Codex 子进程完成。
+Before submitting changes, run tests and `git diff --check`. Do not include auth files, Keychain exports, raw logs, real account screenshots, or tokens in issues or pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 边界
+## Acknowledgments
 
-这是本地登录切换，不是账号数据隔离。所有账号共用同一个本地 Codex 目录、任务历史和项目。云端任务、连接器及权限仍与各自账号绑定。本工具不迁移云端数据。
-
-运行中的 CLI 会话可能保留原凭据并写回刷新结果；切换前请结束它们。不要同时使用其他账号切换器。本工具不强杀 Codex 桌面应用，不检测任务是否完成，由用户在切换对话框确认时机。
-
-启动检查证明桌面进程打开，不证明服务端已接受目标账号；令牌失效时需要重新登录。自定义 home、managed policy、OS credential-store 后端以及将来的认证格式变化需要进一步适配。
-
-测试使用虚构凭据，覆盖账号身份区分、存储模式、原子写入权限、符号链接拒绝、额度解析和切换失败恢复。实际多账号登录/切换需要用户在浏览器中完成验证，不能由演示测试代替。
-
-## 依据
-
-- [OpenAI 认证与本地凭据存储](https://learn.chatgpt.com/docs/auth)
-- [OpenAI App Server 协议](https://learn.chatgpt.com/docs/app-server)
-- 本机 Codex 26.901.51231 的 `app-server generate-ts` 输出，用于核对登录及额度请求结构（2026-09-08）。
-
-## 菜单栏、登录启动与通知
-
-在菜单栏面板或主窗口点击「设置…」：
-
-- 默认仅在菜单栏显示，隐藏 Dock 图标；可随时切回显示 Dock。
-- 使用 macOS `SMAppService.mainApp` 管理登录启动。设置页显示系统真实状态，支持启用、关闭及跳转系统登录项。当前启动项指向运行的应用包，请不要移动或删除该包；移动后需关闭并重新开启登录启动。
-- 默认开启低额度提醒，首次申请系统通知权限。每 5 分钟后台读取所有已保存账号；休眠时暂停，网络或登录失效时不把失败当作零额度。
-- 所有服务返回的额度窗口，剩余严格低于 75%、50%、25% 时通知。同账号、同窗口、同重置周期去重并跨重启保存。一次跨多个阈值只通知最低档，首次读到低额度也提醒一次。新周期重新计数。
-- 系统勿扰模式、通知展示设置和网络可影响实际提醒时间。
-
-### 顶部菜单栏额度样式
-
-「设置 → 菜单栏额度」提供百分比、分段进度条、两者同时显示三种方式，默认同时显示；更改立即生效并保存。上行粉色为当前账号的短期 Codex 额度，下行蓝色为每周额度，进度条填充表示剩余比例。仅从 Codex 主 bucket 取值，不使用 Spark / reserve 替代。未知、失败或已到重置时间显示 —，点击仍可查看完整面板。设置中附虚构数据样式预览。
+Quota-window presentation was inspired by [CodexBar](https://github.com/steipete/CodexBar). No source code or artwork was copied. The app icon is an original AI-generated asset; its provenance is recorded in [Assets/README.md](Assets/README.md).

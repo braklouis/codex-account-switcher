@@ -5,6 +5,8 @@ swift build -c release --disable-sandbox
 APP="$PWD/dist/Codex Accounts.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/CodexAccounts "$APP/Contents/MacOS/CodexAccounts"
+# Do not distribute local debug paths or symbols.
+strip -S "$APP/Contents/MacOS/CodexAccounts"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -15,8 +17,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleDisplayName</key><string>Codex Accounts</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.3.0</string>
-<key>CFBundleVersion</key><string>4</string>
+<key>CFBundleShortVersionString</key><string>0.4.0</string>
+<key>CFBundleVersion</key><string>5</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>
@@ -32,6 +34,7 @@ for SIZE in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 cp Assets/AppIcon.png "$APP/Contents/Resources/AppIcon.png"
+cp LICENSE "$APP/Contents/Resources/LICENSE"
 codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
 codesign --verify --strict "$APP"
 print "Built: $APP"

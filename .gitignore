@@ -4,3 +4,18 @@ dist/
 *.xcuserstate
 auth.json
 *.log
+
+# Credentials and local diagnostics
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.keychain*
+*.ips
+*.dSYM/
+*.zip
+*.dmg
+security-reports/
+.swiftpm/
