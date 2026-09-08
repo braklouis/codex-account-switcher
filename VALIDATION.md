@@ -20,3 +20,10 @@
 ```sh
 CLANG_MODULE_CACHE_PATH=/private/tmp/codex-accounts-module-cache swift test --disable-sandbox --cache-path /private/tmp/codex-accounts-swift-cache
 ```
+
+## 0.1.1 额度修复
+
+- 真实服务诊断定位：`account/login/start.chatgptAuthTokens requires experimentalApi capability`（-32600）。初始化补上 experimentalApi 能力。
+- 错误分类区分协议不兼容、认证过期、网络、限流和未知服务错误，不显示原始服务文本。
+- 18 项 XCTest 全部通过，Release 打包及签名校验通过。
+- 重新打开 0.1.1 应用并刷新，两个已保存账号均成功展示真实额度、多 bucket 和重置时间；未切换或重启 Codex 桌面应用。

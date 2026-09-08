@@ -131,7 +131,7 @@ import SwitcherCore
                     self.quotas[profile.id] = quota; self.quotaDates[profile.id] = Date()
                     self.quotaErrors.removeValue(forKey: profile.id)
                 } catch {
-                    self.quotaErrors[profile.id] = "暂不可用，可重新登录后再试"
+                    self.quotaErrors[profile.id] = (error as? SwitcherError)?.message ?? "额度返回格式无法读取，请更新工具后重试"
                 }
             }
             self.status = "额度检查完成"

@@ -90,7 +90,7 @@ import SwitcherCore
         catch { try? FileManager.default.removeItem(at: directory); throw SwitcherError("无法启动本机 Codex 服务。") }
     }
     func start() async throws {
-        _ = try await request("initialize", ["clientInfo": ["name": "codex_accounts", "title": "Codex Accounts", "version": "0.1.0"], "capabilities": NSNull()])
+        _ = try await request("initialize", RPCContract.initializeParams)
         try send(["method": "initialized"])
     }
     private func send(_ object: [String: Any]) throws {
@@ -126,7 +126,7 @@ import SwitcherCore
             if message["method"] != nil, let id = message["id"] {
                 try? send(["id": id, "error": ["code": -32000, "message": "Please sign in again in Codex Accounts."]])
             } else if let id = message["id"] as? Int, let waiting = pending.removeValue(forKey: id) {
-                if message["error"] != nil { waiting.resume(throwing: SwitcherError("请求未成功。登录可能已过期，请重新登录，或稍后重试。")) }
+                if let error = message["error"] as? [String: Any] { waiting.resume(throwing: SwitcherError(RPCContract.errorMessage(error))) }
                 else { waiting.resume(returning: message["result"] as? [String: Any] ?? [:]) }
             } else if message["method"] as? String == "account/login/completed" {
                 notifications.append(message["params"] as? [String: Any] ?? [:])
