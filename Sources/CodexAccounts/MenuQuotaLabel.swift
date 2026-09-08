@@ -11,14 +11,12 @@ struct MenuQuotaLabel: View {
         return MenuQuotaSummary(quota: store.quotas[profile.id], unavailable: store.quotaErrors[profile.id] != nil)
     }
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            let short = valid(summary.shortTerm, now: timeline.date)
-            let week = valid(summary.weekly, now: timeline.date)
+            let short = valid(summary.shortTerm, now: Date())
+            let week = valid(summary.weekly, now: Date())
             Image(nsImage: StatusQuotaDrawing.image(style: preferences.menuQuotaStyle,
                 short: short?.remaining, weekly: week?.remaining, shortLabel: label(short)))
                 .accessibilityLabel("Codex 剩余额度：短期 \(value(short))，每周 \(value(week))")
                 .help("\(profile?.name ?? "未保存当前账号") · 短期 \(value(short)) · 每周 \(value(week))。点击查看详情。")
-        }
     }
     private func valid(_ window: QuotaWindow?, now: Date) -> QuotaWindow? {
         guard let window else { return nil }
@@ -35,14 +33,18 @@ struct MenuQuotaLabel: View {
 /// Rasterize into a native status-item image: macOS menu labels otherwise flatten custom SwiftUI layouts.
 /// Draws at the backing scale chosen by AppKit, retaining crisp two-row text on Retina screens.
 @MainActor enum StatusQuotaDrawing {
+    private static var cache: [String: NSImage] = [:]
     static func image(style: String, short: Double?, weekly: Double?, shortLabel: String = "5h") -> NSImage {
+        let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(shortLabel)|\(NSApp.effectiveAppearance.name.rawValue)"
+        if let cached = cache[key] { return cached }
         let numbers = style != "bars"
         let bars = style != "numbers"
         let width: CGFloat = 18 + (numbers ? 34 : 0) + (bars ? 43 : 0) + (numbers && bars ? 4 : 0)
-        let image = NSImage(size: NSSize(width: width, height: 22), flipped: true) { _ in
+        let image = NSImage(size: NSSize(width: width, height: 22))
+        image.lockFocus()
             for (index, item) in [(shortLabel, short, NSColor.systemPink), ("周", weekly, NSColor.systemCyan)].enumerated() {
                 let (name, value, color) = item
-                let y: CGFloat = index == 0 ? 0 : 11
+                let y: CGFloat = index == 0 ? 11 : 0
                 let textColor = value == nil ? NSColor.secondaryLabelColor : color
                 let small = NSFont.systemFont(ofSize: 8, weight: .semibold)
                 (name as NSString).draw(in: NSRect(x: 0, y: y + 1, width: 19, height: 10), withAttributes: [.font: small, .foregroundColor: textColor])
@@ -70,9 +72,10 @@ struct MenuQuotaLabel: View {
                     }
                 }
             }
-            return true
-        }
+        image.unlockFocus()
         image.isTemplate = false
+        if cache.count >= 64 { cache.removeAll(keepingCapacity: true) }
+        cache[key] = image
         return image
     }
 }
