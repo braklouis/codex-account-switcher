@@ -97,7 +97,7 @@ struct MenuContent: View {
                             Button(L10n.text("打开账号管理"), action: manage)
                         }.padding(28)
                     }
-                    ForEach(store.profiles) { profile in
+                    ForEach(store.orderedProfiles) { profile in
                         AccountUsageCard(profile: profile, store: store,
                             onSwitch: { switchTarget = profile },
                             onRename: manage, onRemove: manage, showsManagement: false)

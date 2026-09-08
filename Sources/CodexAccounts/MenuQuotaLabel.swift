@@ -11,12 +11,24 @@ struct MenuQuotaLabel: View {
         return MenuQuotaSummary(quota: store.quotas[profile.id], unavailable: store.quotaErrors[profile.id] != nil)
     }
     var body: some View {
-            let short = valid(summary.shortTerm, now: Date())
-            let week = valid(summary.weekly, now: Date())
-            Image(nsImage: StatusQuotaDrawing.image(style: preferences.menuQuotaStyle,
-                short: short?.remaining, weekly: week?.remaining, shortLabel: label(short)))
-                .accessibilityLabel(L10n.isEnglish ? "Codex remaining: short-term \(value(short)), weekly \(value(week))" : "Codex 剩余额度：短期 \(value(short))，每周 \(value(week))")
-                .help(L10n.isEnglish ? "Short-term \(value(short)) · Weekly \(value(week)). Click for details." : "\(profile?.name ?? L10n.text("未保存当前账号")) · 短期 \(value(short)) · 每周 \(value(week))。点击查看详情。")
+        let now = store.menuClock
+        let short = valid(summary.shortTerm, now: now)
+        let week = valid(summary.weekly, now: now)
+        let selected = short ?? week
+        Image(nsImage: StatusQuotaDrawing.image(style: preferences.menuQuotaStyle,
+            short: short?.remaining, weekly: week?.remaining,
+            countdown: countdown(selected, now: now)))
+            .accessibilityLabel(L10n.isEnglish ? "Remaining quota \(value(selected)); \(countdown(selected, now: now)) until reset" : "剩余额度 \(value(selected))；距重置 \(countdown(selected, now: now))")
+            .help(L10n.isEnglish ? "Time remaining / window duration. Short-term \(value(short)) · Weekly \(value(week))" : "距重置剩余时间 / 窗口总时长。短期 \(value(short)) · 每周 \(value(week))")
+    }
+    private func countdown(_ window: QuotaWindow?, now: Date) -> String {
+        guard let window, let minutes = window.windowDurationMins, let reset = window.resetsAt else { return "—" }
+        let days = minutes >= 1440
+        let divisor = days ? 86400.0 : 3600.0
+        let total = Double(minutes) * 60 / divisor
+        let left = min(total, max(0, reset - now.timeIntervalSince1970) / divisor)
+        let unit = L10n.isEnglish ? (days ? "days" : "hours") : (days ? "天" : "小时")
+        return String(format: "%.1f/%.0f %@", locale: Locale(identifier: "en_US_POSIX"), left, total, unit)
     }
     private func valid(_ window: QuotaWindow?, now: Date) -> QuotaWindow? {
         guard let window else { return nil }
@@ -34,52 +46,39 @@ struct MenuQuotaLabel: View {
 /// Draws at the backing scale chosen by AppKit, retaining crisp two-row text on Retina screens.
 @MainActor enum StatusQuotaDrawing {
     private static var cache: [String: NSImage] = [:]
-    static func image(style: String, short: Double?, weekly: Double?, shortLabel: String = "5h") -> NSImage {
-        let key = "\(L10n.isEnglish)|\(style)|\(String(describing: short))|\(String(describing: weekly))|\(shortLabel)|\(NSApp.effectiveAppearance.name.rawValue)"
+    static func image(style: String, short: Double?, weekly: Double?, countdown: String = "4.3/5 hours") -> NSImage {
+        let remaining = short ?? weekly
+        let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
-        let numbers = style != "bars"
-        let bars = style != "numbers"
-        let width: CGFloat = 18 + (numbers ? 34 : 0) + (bars ? 43 : 0) + (numbers && bars ? 4 : 0)
+        let color = short != nil
+            ? NSColor(srgbRed: 0.55, green: 0.87, blue: 0.98, alpha: 1)
+            : NSColor(srgbRed: 0.77, green: 0.70, blue: 0.98, alpha: 1)
+        let topAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium),
+            .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color
+        ]
+        let width = max(58, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 4)
         let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
-            let candidates: [(String, Double?, NSColor)] = [
-                (shortLabel, short, NSColor(srgbRed: 0.55, green: 0.87, blue: 0.98, alpha: 1)),
-                (L10n.isEnglish ? "W" : "周", weekly, NSColor(srgbRed: 0.77, green: 0.70, blue: 0.98, alpha: 1))
-            ]
-            let available = candidates.filter { $0.1 != nil }
-            // Some plans expose only a weekly window. Do not draw a phantom
-            // short-term meter or borrow a different model's quota.
-            let rows = available.isEmpty ? [("", nil as Double?, NSColor.secondaryLabelColor)] : available
-            for (index, item) in rows.enumerated() {
-                let (name, value, color) = item
-                let y: CGFloat = rows.count == 1 ? 5.5 : (index == 0 ? 11 : 0)
-                let textColor = value == nil ? NSColor.secondaryLabelColor : color
-                let small = NSFont.systemFont(ofSize: 8, weight: .semibold)
-                (name as NSString).draw(in: NSRect(x: 0, y: y + 1, width: 19, height: 10), withAttributes: [.font: small, .foregroundColor: textColor])
-                if numbers {
-                    let text = value.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
-                    let paragraph = NSMutableParagraphStyle(); paragraph.alignment = .right
-                    (text as NSString).draw(in: NSRect(x: 18, y: y - 1, width: 34, height: 12),
-                        withAttributes: [.font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold), .foregroundColor: textColor, .paragraphStyle: paragraph])
-                }
-                if bars && value != nil {
-                    let x: CGFloat = numbers ? 56 : 18
-                    let proportion = max(0, min(100, value ?? 0)) / 100
-                    for segment in 0..<8 {
-                        let rect = NSRect(x: x + CGFloat(segment) * 5.25, y: y + 1, width: 3.75, height: 8)
-                        color.withAlphaComponent(0.22).setFill()
-                        NSBezierPath(roundedRect: rect, xRadius: 1.1, yRadius: 1.1).fill()
-                        let fraction = max(0, min(1, proportion * 8 - Double(segment)))
-                        if fraction > 0 {
-                            color.setFill()
-                            NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: rect.width * fraction, height: rect.height), xRadius: 0.7, yRadius: 0.7).fill()
-                        }
-                    }
-                }
-                if !numbers && value == nil {
-                    ("—" as NSString).draw(at: NSPoint(x: 25, y: y), withAttributes: [.font: small, .foregroundColor: textColor])
-                }
-            }
+        let center = NSMutableParagraphStyle(); center.alignment = .center
+        var top = topAttributes; top[.paragraphStyle] = center
+        (countdown as NSString).draw(in: NSRect(x: 0, y: 11, width: width, height: 11), withAttributes: top)
+        let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
+        if style != "bars" || remaining == nil {
+            (value as NSString).draw(in: NSRect(x: 0, y: style == "both" ? 1 : 0, width: width, height: 12), withAttributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold),
+                .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color,
+                .paragraphStyle: center
+            ])
+        }
+        if style != "numbers", let remaining {
+            let height: CGFloat = style == "bars" ? 5 : 1.5
+            let rect = NSRect(x: 4, y: style == "bars" ? 3 : 0, width: width - 8, height: height)
+            color.withAlphaComponent(0.22).setFill()
+            NSBezierPath(roundedRect: rect, xRadius: height / 2, yRadius: height / 2).fill()
+            color.setFill()
+            NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: rect.width * max(0, min(100, remaining)) / 100, height: height), xRadius: height / 2, yRadius: height / 2).fill()
+        }
         image.unlockFocus()
         image.isTemplate = false
         if cache.count >= 64 { cache.removeAll(keepingCapacity: true) }

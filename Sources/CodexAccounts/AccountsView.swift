@@ -50,7 +50,7 @@ struct AccountsView: View {
                             Label(L10n.text("先保存你的第一个账号"), systemImage: "person.crop.circle.badge.plus")
                         } description: { Text(L10n.text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。")) }
                     }
-                    ForEach(store.profiles) { profile in accountCard(profile) }
+                    ForEach(store.orderedProfiles) { profile in accountCard(profile) }
                 }.padding(.horizontal, 28).padding(.bottom, 20)
             }
             Divider()

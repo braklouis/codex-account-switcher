@@ -12,6 +12,13 @@ import SwitcherCore
     @Published var quotas: [UUID: QuotaResponse] = [:]
     @Published var quotaDates: [UUID: Date] = [:]
     @Published var quotaErrors: [UUID: String] = [:]
+    var orderedProfiles: [Profile] {
+        guard let activeIdentity else { return profiles }
+        return profiles.filter { $0.snapshot?.identity == activeIdentity }
+            + profiles.filter { $0.snapshot?.identity != activeIdentity }
+    }
+    @Published private(set) var menuClock = Date()
+    private var menuClockTask: Task<Void, Never>?
     private let vault = KeychainVault()
     let bridge = CodexBridge()
     let demo: Bool
@@ -20,6 +27,14 @@ import SwitcherCore
 
     init(demo: Bool = false) {
         self.demo = demo
+        menuClockTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(nanoseconds: 60_000_000_000) }
+                catch { return }
+                guard let self else { return }
+                self.menuClock = Date()
+            }
+        }
         if demo { loadDemo() }
         else {
             reload()
