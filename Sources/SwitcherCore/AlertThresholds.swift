@@ -5,11 +5,14 @@ public struct AlertThresholds: Codable {
     public var reset: Double?
     public var previous: Double?
     public init() {}
-    public mutating func evaluate(remaining: Double, resetsAt: Double?) -> Int? {
-        if reset != resetsAt || (resetsAt == nil && remaining > (previous ?? 100) + 10) {
+    public mutating func evaluate(remaining: Double, resetsAt: Double?, now: Double = Date().timeIntervalSince1970) -> Int? {
+        // Server estimates can shift between reads. Only rearm after the
+        // previous cycle actually ended, not whenever its timestamp changes.
+        if let oldReset = reset, let newReset = resetsAt,
+           oldReset <= now, newReset > now, newReset > oldReset {
             notified = []
         }
-        reset = resetsAt
+        if let resetsAt { reset = resetsAt }
         previous = remaining
         let crossed = [75, 50, 25].filter { remaining < Double($0) && !notified.contains($0) }
         // A large jump produces one notification for the lowest crossed threshold.

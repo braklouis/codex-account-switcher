@@ -23,6 +23,7 @@ import SwitcherCore
     @Published var notificationStatus = "尚未读取"
     @Published var message: String?
     private var history: [String: AlertThresholds] = [:]
+    private var checkingAlerts = false
     override init() {
         let defaults = UserDefaults.standard
         defaults.register(defaults: ["menuOnly": true, "quotaReminders": true])
@@ -76,7 +77,9 @@ import SwitcherCore
         }
     }
     func check(profile: Profile, quota: QuotaResponse) async {
-        guard reminders else { return }
+        guard reminders, !checkingAlerts else { return }
+        checkingAlerts = true
+        defer { checkingAlerts = false }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
@@ -97,6 +100,10 @@ import SwitcherCore
                     } catch { continue } // Retry next poll if the notification could not be scheduled.
                 }
                 history[key] = state
+                // Persist each successful delivery before processing another window.
+                if let data = try? JSONEncoder().encode(history) {
+                    UserDefaults.standard.set(data, forKey: "quotaAlertHistory")
+                }
             }
         }
         if let data = try? JSONEncoder().encode(history) { UserDefaults.standard.set(data, forKey: "quotaAlertHistory") }
