@@ -120,6 +120,24 @@ import SwitcherCore
             status = "已移除保存的账号；当前 Codex 登录保持不变"
         } catch { self.error = error.localizedDescription }
     }
+    func confirmSwitch(_ profile: Profile) {
+        guard !busy, loaded else { return }
+        // Reserve the operation before the popover closes or a refresh starts.
+        busy = true
+        DispatchQueue.main.async { [self] in
+            NSApp.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.messageText = L10n.text("切换并重新打开 Codex？")
+            alert.informativeText = L10n.isEnglish
+                ? "Switch to \(profile.name)? Finish active Codex tasks and CLI sessions first. Codex will restart; local history stays shared."
+                : "切换到「\(profile.name)」？请先结束 Codex 任务和 CLI 会话。Codex 会重新启动，本地历史继续共用。"
+            alert.addButton(withTitle: L10n.text("切换并重启"))
+            alert.addButton(withTitle: L10n.text("取消"))
+            let confirmed = alert.runModal() == .alertFirstButtonReturn
+            busy = false
+            if confirmed { switchTo(profile) }
+        }
+    }
     func switchTo(_ profile: Profile) {
         perform {
             if self.demo { self.activeIdentity = profile.snapshot?.identity; self.activeEmail = profile.snapshot?.email; self.status = "演示切换完成"; return }

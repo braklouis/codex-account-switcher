@@ -5,7 +5,6 @@ struct AccountsView: View {
     @ObservedObject private var language = AppPreferences.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
-    @State private var switchTarget: Profile?
     @State private var removeTarget: Profile?
     @State private var renameTarget: Profile?
     @State private var name = ""
@@ -75,14 +74,7 @@ struct AccountsView: View {
         .frame(minWidth: 640, minHeight: 600)
         .background(Color(nsColor: .windowBackgroundColor))
         .onReceive(NotificationCenter.default.publisher(for: .chooseAccount)) { note in
-            if let id = note.object as? UUID { switchTarget = store.profiles.first { $0.id == id } }
-        }
-        .alert(L10n.text("切换并重新打开 Codex？"), isPresented: Binding(get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } }), presenting: switchTarget) { target in
-            Button(L10n.text("取消"), role: .cancel) { switchTarget = nil }
-            Button(L10n.text("切换并重启")) { store.switchTo(target); switchTarget = nil }
-                .disabled(store.busy)
-        } message: { target in
-            Text(L10n.isEnglish ? "Switch to \(target.name). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(target.name)」。请先结束正在运行的 Codex 任务和命令行会话。切换会关闭并重新打开桌面应用；本地任务历史继续共用。")
+            if let id = note.object as? UUID, let profile = store.profiles.first(where: { $0.id == id }) { store.confirmSwitch(profile) }
         }
         .alert(L10n.text("移除保存的账号？"), isPresented: Binding(get: { removeTarget != nil }, set: { if !$0 { removeTarget = nil } })) {
             Button(L10n.text("取消"), role: .cancel) { removeTarget = nil }
@@ -100,7 +92,7 @@ struct AccountsView: View {
 
     private func accountCard(_ profile: Profile) -> some View {
         AccountUsageCard(profile: profile, store: store,
-            onSwitch: { switchTarget = profile },
+            onSwitch: { store.confirmSwitch(profile) },
             onRename: { name = profile.name; renameTarget = profile },
             onRemove: { removeTarget = profile })
     }

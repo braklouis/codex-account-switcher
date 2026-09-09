@@ -69,7 +69,6 @@ struct MenuContent: View {
     @ObservedObject private var language = AppPreferences.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
-    @State private var switchTarget: Profile?
     private let tint = Color(red: 0.10, green: 0.52, blue: 0.41)
 
     var body: some View {
@@ -99,7 +98,7 @@ struct MenuContent: View {
                     }
                     ForEach(store.orderedProfiles) { profile in
                         AccountUsageCard(profile: profile, store: store,
-                            onSwitch: { switchTarget = profile },
+                            onSwitch: { store.confirmSwitch(profile) },
                             onRename: manage, onRemove: manage, showsManagement: false)
                     }
                 }.padding(12)
@@ -122,17 +121,6 @@ struct MenuContent: View {
                 guard let date = store.quotaDates[$0.id] else { return true }
                 return Date().timeIntervalSince(date) > 60
             }) { store.refreshQuotas() }
-        }
-        .alert(L10n.text("切换并重新打开 Codex？"), isPresented: Binding(
-            get: { switchTarget != nil }, set: { if !$0 { switchTarget = nil } }), presenting: switchTarget) { target in
-            Button(L10n.text("取消"), role: .cancel) { switchTarget = nil }
-            Button(L10n.text("切换并重启")) {
-                store.switchTo(target)
-                switchTarget = nil
-            }
-            .disabled(store.busy)
-        } message: { target in
-            Text(L10n.isEnglish ? "Switch to \(target.name). Finish active Codex tasks and CLI sessions first. Codex will close and reopen; local history stays shared." : "将切换到「\(target.name)」。请先结束正在运行的 Codex 任务和命令行会话，桌面应用会关闭并重新打开。")
         }
     }
     private func manage() {
