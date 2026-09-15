@@ -64,8 +64,9 @@ struct MenuQuotaLabel: View {
         ]
         let showText = style != "bars"
         let showBars = style != "numbers"
-        let textWidth: CGFloat = showText ? max(36, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 2) : 0
-        let barsX: CGFloat = showText ? textWidth + 5 : 0
+        let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
+        let textWidth: CGFloat = showText ? ceil(max((countdown as NSString).size(withAttributes: topAttributes).width, (value as NSString).size(withAttributes: topAttributes).width)) + 1 : 0
+        let barsX: CGFloat = showText ? textWidth + 3 : 0
         let width = showBars ? barsX + 12 : textWidth
         let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
@@ -73,7 +74,6 @@ struct MenuQuotaLabel: View {
         var top = topAttributes; top[.paragraphStyle] = alignment
         if showText {
             (countdown as NSString).draw(in: NSRect(x: 0, y: 11, width: textWidth, height: 11), withAttributes: top)
-            let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
             (value as NSString).draw(in: NSRect(x: 0, y: 0, width: textWidth, height: 12), withAttributes: [
                 .font: font,
                 .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color,
