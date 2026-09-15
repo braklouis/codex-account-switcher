@@ -66,7 +66,7 @@ struct MenuQuotaLabel: View {
         let showBars = style != "numbers"
         let textWidth: CGFloat = showText ? max(36, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 2) : 0
         let barsX: CGFloat = showText ? textWidth + 5 : 0
-        let width = showBars ? barsX + 31 : textWidth
+        let width = showBars ? barsX + 5 : textWidth
         let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
         let alignment = NSMutableParagraphStyle(); alignment.alignment = .right
@@ -81,13 +81,17 @@ struct MenuQuotaLabel: View {
             ])
         }
         if showBars {
-            for (y, percentage) in [(CGFloat(7), remaining)] {
-                let filled = percentage.map { Int(ceil(max(0, min(100, $0)) / 100 * 8)) } ?? 0
-                for index in 0..<8 {
-                    (index < filled ? color : color.withAlphaComponent(0.18)).setFill()
-                    let rect = NSRect(x: barsX + CGFloat(index) * 4, y: y, width: 3, height: 8)
-                    NSBezierPath(roundedRect: rect, xRadius: 1, yRadius: 1).fill()
-                }
+            let rect = NSRect(x: barsX, y: 2, width: 5, height: 18)
+            let outline = NSBezierPath(roundedRect: rect, xRadius: 2, yRadius: 2)
+            color.withAlphaComponent(0.18).setFill()
+            outline.fill()
+            if let remaining {
+                NSGraphicsContext.saveGraphicsState()
+                outline.addClip()
+                color.setFill()
+                NSBezierPath(rect: NSRect(x: rect.minX, y: rect.minY, width: rect.width,
+                    height: rect.height * max(0, min(100, remaining)) / 100)).fill()
+                NSGraphicsContext.restoreGraphicsState()
             }
         }
         image.unlockFocus()
