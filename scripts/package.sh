@@ -33,6 +33,8 @@ for SIZE in 16 32 128 256 512; do
     sips -z "$DOUBLE" "$DOUBLE" Assets/AppIcon.png --out "$ICONSET/icon_${SIZE}x${SIZE}@2x.png" >/dev/null
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+mkdir -p "$APP/Contents/Resources/ProviderIcons"
+cp Assets/ProviderIcons/*.svg "$APP/Contents/Resources/ProviderIcons/"
 cp Assets/AppIcon.png "$APP/Contents/Resources/AppIcon.png"
 cp LICENSE "$APP/Contents/Resources/LICENSE"
 cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"

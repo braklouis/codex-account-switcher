@@ -68,8 +68,8 @@ struct ProviderDashboard: View {
                 ForEach(products.enabled, id: \.self) { id in
                     Button { products.selected = id } label: {
                         HStack(spacing: 9) {
-                            Image(systemName: ProductPreferences.catalog.first { $0.id == id }?.symbol ?? "circle")
-                                .frame(width: 18)
+                            ProviderBrandIcon(provider: id)
+                                .frame(width: 18, height: 18)
                             Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
                             Spacer()
                         }.font(.system(size: 13, weight: .medium)).padding(10)
@@ -140,7 +140,7 @@ struct ProviderUsageCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 16) {
             HStack {
-                Image(systemName: "circle.grid.2x2.fill").foregroundStyle(.teal)
+                ProviderBrandIcon(provider: usage.id).frame(width: 20, height: 20).foregroundStyle(.primary)
                 Text(usage.name).font(.headline)
                 Spacer()
                 if let account = usage.account, !account.isEmpty { Text(account).font(.caption).foregroundStyle(.secondary).lineLimit(1) }

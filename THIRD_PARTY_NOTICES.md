@@ -26,3 +26,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Provider brand SVGs in Assets/ProviderIcons are copied from CodexBar Sources/CodexBar/Resources at the reference revision above. Brand names and marks belong to their respective owners; their inclusion identifies the supported providers and does not imply endorsement.

@@ -180,7 +180,7 @@ struct ProductSettingsView: View {
                 let isEnabled = preferences.enabled.contains(product.id)
                 let isSelected = preferences.selected == product.id
                 HStack(spacing: 12) {
-                    Image(systemName: product.symbol).frame(width: 23).foregroundStyle(isSelected ? .teal : .secondary)
+                    ProviderBrandIcon(provider: product.id).frame(width: 21, height: 21).foregroundStyle(isSelected ? .teal : .secondary)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(product.name).font(.system(size: 13, weight: .medium))
                         if isSelected { Text(L10n.isEnglish ? "Selected" : "当前选择").font(.caption2).foregroundStyle(.teal) }

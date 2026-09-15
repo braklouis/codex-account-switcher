@@ -100,7 +100,10 @@ struct MenuContent: View {
                 HStack(spacing: 4) {
                     ForEach(products.enabled, id: \.self) { id in
                         Button { products.selected = id } label: {
-                            Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
+                            HStack(spacing: 4) {
+                                ProviderBrandIcon(provider: id).frame(width: 12, height: 12)
+                                Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
+                            }
                                 .font(.system(size: 11, weight: products.selected == id ? .semibold : .medium))
                                 .padding(.horizontal, 9).padding(.vertical, 6)
                                 .foregroundStyle(products.selected == id ? tint : Color.secondary)
