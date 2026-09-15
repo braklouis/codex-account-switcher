@@ -12,7 +12,7 @@ struct ProviderBrandIcon: View {
         }
     }
     private static let icons: [String: NSImage] = {
-        let names = ["codex", "grok", "kimi", "openrouter", "claude", "cursor", "gemini", "qwen-cloud", "zai", "deepseek"]
+        let names = ["codex", "grok", "kimi", "openrouter", "claude", "cursor", "gemini", "qwen-cloud", "zai", "deepseek", "copilot"]
         var result: [String: NSImage] = [:]
         for name in names {
             guard let url = Bundle.main.url(forResource: name, withExtension: "svg", subdirectory: "ProviderIcons"),
