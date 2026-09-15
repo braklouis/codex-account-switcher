@@ -193,6 +193,19 @@ struct QuotaMeter: View {
             }
         }
     }
+        if let pace = paceText {
+            Text(pace).font(.caption2).foregroundStyle(.secondary)
+        }
+    }
+    private var paceText: String? {
+        guard let minutes = window.windowDurationMins, let reset = window.resetsAt,
+              let pace = UsagePaceEstimate(remainingPercent: window.remaining, durationMinutes: Double(minutes),
+                  resetsAt: Date(timeIntervalSince1970: reset), now: Date()) else { return nil }
+        if pace.willLastToReset { return L10n.isEnglish ? "Estimated pace: lasts until reset" : "按当前均速估算：可持续到重置" }
+        guard let seconds = pace.estimatedSecondsUntilEmpty else { return nil }
+        let hours = max(0, Int(seconds / 3600))
+        let duration = hours >= 24 ? "\(hours / 24)d \(hours % 24)h" : hours > 0 ? "\(hours)h" : "\(max(1, Int(ceil(seconds / 60))))m"
+        return L10n.isEnglish ? "Estimated: \(Int(pace.deficitPercent.rounded()))% behind pace · empty in \(duration)" : "按均速估算：落后 \(Int(pace.deficitPercent.rounded()))% · 约 \(duration) 后用尽"
     }
     private func resetLabel(_ timestamp: Double, now: Date) -> String {
         let mins = Int(ceil((timestamp - now.timeIntervalSince1970) / 60))

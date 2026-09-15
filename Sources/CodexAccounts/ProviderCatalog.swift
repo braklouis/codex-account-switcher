@@ -75,6 +75,12 @@ final class ProductPreferences: ObservableObject {
             loginHintZH: "DeepSeek 可使用 API key；详细用量还需要 CodexBar 可读取的 DeepSeek Platform 会话。",
             loginHintEN: "DeepSeek can use an API key; detailed usage additionally needs a DeepSeek Platform session readable by CodexBar.",
             docsURL: URL(string: "https://github.com/steipete/CodexBar/blob/main/docs/deepseek.md")!
+        ),
+        ProductDefinition(
+            id: "copilot", name: "GitHub Copilot", symbol: "chevron.left.forwardslash.chevron.right",
+            loginHintZH: "使用 CodexBar 的 GitHub OAuth 设备授权登录；TokenDeck 不读取或保存凭据。",
+            loginHintEN: "Uses CodexBar's GitHub OAuth device-flow login; TokenDeck never reads or stores credentials.",
+            docsURL: URL(string: "https://github.com/steipete/CodexBar/blob/main/docs/copilot.md")!
         )
     ]
 

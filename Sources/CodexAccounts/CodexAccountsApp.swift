@@ -169,6 +169,9 @@ struct MenuContent: View {
                     } else {
                         emptyState
                     }
+                    if ["codex", "claude", "cursor"].contains(products.selected) {
+                        LocalConsumptionView(provider: products.selected)
+                    }
                 }.background(AutoHidingScrollbars()).padding(.horizontal, 12).padding(.bottom, 9)
             }.frame(height: 260)
             Divider()

@@ -66,10 +66,6 @@ struct ProviderDashboard: View {
     @ObservedObject private var usage = ProviderUsageStore.shared
     var showProducts: () -> Void = {}
     var codexAccounts: AnyView?
-    @State private var showsCost = false
-    @State private var costs: [String: LocalCost] = [:]
-    @State private var costLoading = false
-    @State private var costError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -114,14 +110,7 @@ struct ProviderDashboard: View {
                 }
                 if ["codex", "claude", "cursor"].contains(products.selected) {
                     Divider()
-                    DisclosureGroup(L10n.isEnglish ? "Local consumption" : "本地消耗", isExpanded: $showsCost) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button(L10n.isEnglish ? "Load consumption" : "读取消耗") { Task { await loadCost() } }.disabled(costLoading)
-                            if costLoading { ProgressView().controlSize(.small) }
-                            if let cost = costs[products.selected] { LocalCostCard(cost: cost) }
-                            if let costError { Text(costError).font(.caption).foregroundStyle(.secondary) }
-                        }.padding(.top, 8)
-                    }.padding(16)
+                    LocalConsumptionView(provider: products.selected).padding(16)
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -129,14 +118,6 @@ struct ProviderDashboard: View {
             .task(id: products.selected) {
                 if products.selected != "codex" || codexAccounts == nil { await usage.refresh(provider: products.selected) }
             }
-    }
-    private func loadCost() async {
-        guard !costLoading else { return }
-        let provider = products.selected
-        costLoading = true; costError = nil
-        defer { costLoading = false }
-        if let result = await ProviderCLI.fetchCost(provider: provider) { costs[provider] = result }
-        else { costError = L10n.isEnglish ? "Local consumption could not be read." : "暂时无法读取本地消耗。" }
     }
 }
 
@@ -227,7 +208,7 @@ struct ProviderUsage: Decodable {
         guard providerError != nil else { return nil }
         return L10n.isEnglish ? "Unavailable or account setup is required. Sign in with the provider and refresh." : "暂不可用或需要先完成账号设置。请登录该提供商后刷新。"
     }
-    static func displayName(_ id: String) -> String { ["claude":"Claude", "cursor":"Cursor", "gemini":"Gemini", "openrouter":"OpenRouter", "grok":"Grok", "kimi":"Kimi Code", "qwen-cloud":"Qwen Cloud", "zai":"GLM", "deepseek":"DeepSeek"][id] ?? id.capitalized }
+    static func displayName(_ id: String) -> String { ["copilot":"GitHub Copilot", "claude":"Claude", "cursor":"Cursor", "gemini":"Gemini", "openrouter":"OpenRouter", "grok":"Grok", "kimi":"Kimi Code", "qwen-cloud":"Qwen Cloud", "zai":"GLM", "deepseek":"DeepSeek"][id] ?? id.capitalized }
     struct Identity: Decodable { let accountEmail: String?; let plan: String? }
     struct Credits: Decodable { let remaining: Double; let unit: String }
     struct UsageCost: Decodable { let todayUSD: Double?; let last30DaysUSD: Double? }
@@ -274,7 +255,9 @@ struct ProviderCLI {
     static func fetchCost(provider: String) async -> LocalCost? {
         await Task.detached(priority: .utility) {
             guard let payload = execute(arguments: ["cost", "--provider", provider, "--format", "json", "--days", "30"]) else { return nil }
-            return (try? JSONDecoder().decode([LocalCost].self, from: payload))?.first
+            guard let cost = (try? JSONDecoder().decode([LocalCost].self, from: payload))?.first,
+                  cost.provider == provider, cost.error == nil else { return nil }
+            return cost
         }.value
     }
 
@@ -388,36 +371,5 @@ private final class OutputBuffer: @unchecked Sendable {
     func snapshot() -> Data? {
         lock.lock(); defer { lock.unlock() }
         return overflow || data.isEmpty ? nil : data
-    }
-}
-
-struct LocalCost: Decodable {
-    let provider: String
-    let last30DaysTokens: Int64?
-    let last30DaysCostUSD: Double?
-    let provenance: String?
-    let totals: Totals?
-    struct Totals: Decodable {
-        let inputTokens: Int64?
-        let outputTokens: Int64?
-        let cacheReadTokens: Int64?
-    }
-}
-
-private struct LocalCostCard: View {
-    let cost: LocalCost
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L10n.isEnglish ? "Last 30 days · local usage" : "近 30 天 · 本地消耗").font(.headline)
-            if let tokens = cost.last30DaysTokens { LabeledContent("Tokens", value: tokens.formatted()) }
-            if let input = cost.totals?.inputTokens { LabeledContent(L10n.isEnglish ? "Input (includes cached reads)" : "输入（含缓存读取）", value: input.formatted()) }
-            if let cached = cost.totals?.cacheReadTokens { LabeledContent(L10n.isEnglish ? "Cached reads" : "缓存读取", value: cached.formatted()) }
-            if let output = cost.totals?.outputTokens { LabeledContent(L10n.isEnglish ? "Output" : "输出", value: output.formatted()) }
-            if let dollars = cost.last30DaysCostUSD {
-                LabeledContent(L10n.isEnglish ? "Estimated cost" : "估算成本", value: dollars.formatted(.currency(code: "USD")))
-            }
-            Text(L10n.isEnglish ? "Local records may be incomplete. Cost is an estimate, not your subscription bill. Shared local history is not limited to the active account." : "本地记录可能不完整。费用为估算，不是会员实际账单；共享历史也不限于当前账号。")
-                .font(.caption).foregroundStyle(.secondary)
-        }.padding(20).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
     }
 }

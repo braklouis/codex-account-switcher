@@ -43,6 +43,23 @@ enum L10n { static let isEnglish = true }
   await store.refresh(provider: "grok")
   assert(calls["grok"] == 1)
   print("PASS refresh: duplicate coalescing, independent providers, cooldown, loading cleanup")
+  let costJSON = #"[{"provider":"codex","last30DaysTokens":1200,"last30DaysCostUSD":0.4,"daily":[{"date":"2026-09-14","totalTokens":1200,"totalCost":0.4,"modelBreakdowns":[{"modelName":"test-model","totalTokens":1200,"cost":0.4}]}],"projects":[{"name":"synthetic","totalTokens":1200,"totalCost":0.4}]}]"#
+  let cost = try! JSONDecoder().decode([LocalCost].self, from: Data(costJSON.utf8))[0]
+  assert(cost.daily?.first?.modelBreakdowns?.first?.cost == 0.4)
+  assert(cost.projects?.first?.totalTokens == 1200)
+  let partial = try! JSONDecoder().decode(LocalCost.self, from: Data(#"{"provider":"codex"}"#.utf8))
+  assert(partial.last30DaysCostUSD == nil && partial.sortedDays.isEmpty)
+  assert(ProductPreferences.catalog.contains { $0.id == "copilot" })
+  assert(!ProductPreferences(defaults: defaults).enabled.contains("copilot"))
+  print("PASS cost: daily/model/project schema, missing values; optional Copilot")
+  let now = Date(timeIntervalSince1970: 10000)
+  let pace = UsagePaceEstimate(remainingPercent: 25, durationMinutes: 100, resetsAt: now.addingTimeInterval(3000), now: now)!
+  assert(pace.expectedRemainingPercent == 50 && pace.deficitPercent == 25)
+  assert(abs(pace.estimatedSecondsUntilEmpty! - 1000) < 0.001 && !pace.willLastToReset)
+  assert(UsagePaceEstimate(remainingPercent: 100, durationMinutes: 100, resetsAt: now.addingTimeInterval(3000), now: now)?.estimatedSecondsUntilEmpty == nil)
+  assert(UsagePaceEstimate(remainingPercent: 25, durationMinutes: 0, resetsAt: now, now: now) == nil)
+  assert(UsagePaceEstimate(remainingPercent: .nan, durationMinutes: 100, resetsAt: now.addingTimeInterval(3000), now: now) == nil)
+  print("PASS pace: linear estimate, zero usage, invalid windows and non-finite inputs")
   guard CommandLine.arguments.contains("--live") else { return }
   for id in ["grok","openrouter"] {
    let result=await ProviderCLI.fetch(provider:id)

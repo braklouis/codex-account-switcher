@@ -40,7 +40,7 @@ struct AccountsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Button { store.addAccount() } label: { Label(L10n.text("登录新账号"), systemImage: "plus") }
-                        .buttonStyle(.borderedProminent).tint(accent)
+                        .buttonStyle(.borderedProminent).tint(accent).foregroundStyle(Color(nsColor: .windowBackgroundColor))
                     Button(L10n.text("保存当前账号")) { store.importCurrent() }
                     Spacer()
                     if store.busy { ProgressView().controlSize(.small) }
@@ -54,7 +54,7 @@ struct AccountsView: View {
                 }.font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(16)
         }
-        .frame(minWidth: 520, minHeight: 460)
+        .frame(minWidth: 520, minHeight: 220)
         .background(Color(nsColor: .windowBackgroundColor))
         .onReceive(NotificationCenter.default.publisher(for: .chooseAccount)) { note in
             if let id = note.object as? UUID, let profile = store.profiles.first(where: { $0.id == id }) { store.confirmSwitch(profile) }
