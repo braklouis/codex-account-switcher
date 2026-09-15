@@ -14,7 +14,7 @@ struct AccountsView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 7) {
-                    Text("CODEX ACCOUNTS").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(accent)
+                    Text("TOKENDECK").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(accent)
                     Text(L10n.text("你的账号，一目了然")).font(.system(size: 28, weight: .semibold))
                     Text(L10n.text("查看可用额度，为下一项任务选好账号。"))
                         .font(.system(size: 13)).foregroundStyle(.secondary)
@@ -27,6 +27,7 @@ struct AccountsView: View {
                 Text(L10n.text("当前登录")).foregroundStyle(.secondary)
                 Text(store.activeEmail ?? L10n.text("尚未登录 / 登录不可读")).lineLimit(1).textSelection(.enabled)
                 Spacer()
+                Button(L10n.isEnglish ? "AI usage & spend" : "AI 额度与消耗") { openWindow(id: "providers") }
                 if store.demo { Text(L10n.text("演示")).foregroundStyle(.orange) }
             }.font(.system(size: 12)).padding(.horizontal, 28).padding(.bottom, 20)
             Divider()

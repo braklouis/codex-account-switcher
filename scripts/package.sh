@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "${0:A:h:h}"
 swift build -c release --disable-sandbox
-APP="$PWD/dist/Codex Accounts.app"
+APP="$PWD/dist/TokenDeck.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/CodexAccounts "$APP/Contents/MacOS/CodexAccounts"
 # Do not distribute local debug paths or symbols.
@@ -13,8 +13,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>local.codexaccounts.app</string>
 <key>CFBundleExecutable</key><string>CodexAccounts</string>
-<key>CFBundleName</key><string>Codex Accounts</string>
-<key>CFBundleDisplayName</key><string>Codex Accounts</string>
+<key>CFBundleName</key><string>TokenDeck</string>
+<key>CFBundleDisplayName</key><string>TokenDeck</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.4.0</string>
@@ -35,6 +35,7 @@ done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 cp Assets/AppIcon.png "$APP/Contents/Resources/AppIcon.png"
 cp LICENSE "$APP/Contents/Resources/LICENSE"
+cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 codesign --force --sign "${SIGN_IDENTITY:--}" "$APP"
 codesign --verify --strict "$APP"
 print "Built: $APP"

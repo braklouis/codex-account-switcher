@@ -6,12 +6,14 @@ import SwitcherCore
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var store = AccountStore(demo: CommandLine.arguments.contains("--demo") || CommandLine.arguments.contains("--self-check"))
     var body: some Scene {
-        Window("Codex Accounts", id: "accounts") {
+        Window("TokenDeck", id: "accounts") {
             AccountsView(store: store)
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in store.refreshActive() }
         }
         .defaultSize(width: 700, height: 780)
         .windowResizability(.contentMinSize)
+        Window("TokenDeck · AI", id: "providers") { ProviderDashboard() }
+            .defaultSize(width: 760, height: 640)
         Window(L10n.text("设置"), id: "preferences") { PreferencesView() }.windowResizability(.contentSize)
         MenuBarExtra {
             MenuContent(store: store)
@@ -76,7 +78,7 @@ struct MenuContent: View {
             HStack(spacing: 10) {
                 AppBrandIcon().frame(width: 36, height: 36)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Codex Accounts").font(.system(size: 14, weight: .semibold))
+                    Text("TokenDeck").font(.system(size: 14, weight: .semibold))
                     Text(L10n.text("各账号剩余额度")).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -106,6 +108,7 @@ struct MenuContent: View {
             Divider()
             HStack {
                 Button(L10n.text("管理账号…"), action: manage)
+                Button(L10n.isEnglish ? "AI usage…" : "AI 额度…") { openWindow(id: "providers"); NSApp.activate(ignoringOtherApps: true) }
                 Button(L10n.text("设置…")) { openWindow(id: "preferences"); NSApp.activate(ignoringOtherApps: true) }
                 Spacer()
                 Button(L10n.text("退出")) { NSApp.terminate(nil) }.disabled(store.busy)

@@ -1,69 +1,26 @@
-# Codex Accounts
+# TokenDeck
 
-<img src="Assets/AppIcon.png" width="96" alt="Codex Accounts 图标">
+自用的 macOS 菜单栏工具：查看 AI 额度和消耗，切换 Codex 账号。
 
-给有多个 Codex 账号的人做的 Mac 小工具。在菜单栏看看还剩多少额度，需要时切个账号，不用反复退出、登录。
+菜单栏显示剩余时间和额度。打开「AI 额度与消耗」，可以查看 Codex、Claude、Cursor、Gemini、OpenRouter、Grok 和 Kimi Code。
 
-[English](README.md) · [下载安装包](https://github.com/braklouis/codex-account-switcher/releases/latest)
+多平台查询复用本机 [CodexBar](https://github.com/steipete/CodexBar) CLI，需先在 CodexBar 配好对应服务。拿不到的数据会显示不可用；本地 Token 的标价估算不是会员实际账单。选择平台只切换查看内容，当前账号切换功能仍仅支持 Codex。
 
-## 能做什么
+## 本地运行
 
-- 把账号放在一起管理，当前使用的账号排在最上面。
-- 菜单栏上下两行：上面是重置倒计时，下面是剩余额度。
-- 额度可以显示百分比、进度条，或者两者一起显示。
-- 剩余低于 75%、50%、25% 时发通知提醒。
-- 支持中英文、开机启动，也可以只留在菜单栏里，不占 Dock。
-
-账号保存在你这台 Mac 的钥匙串中，不会上传给作者，也没有遥测。
-
-## 安装
-
-需要 **macOS 14 及以上、Apple Silicon 芯片，以及官方 Codex 桌面应用**。
+需要 macOS 14+、Swift、Codex 桌面端和 CodexBar CLI（已验证 0.60.2）。查询工具从 `/opt/homebrew/bin/codexbar` 或 `/usr/local/bin/codexbar` 读取。
 
 ```sh
-brew trust --cask braklouis/tap/codex-accounts
-brew tap braklouis/tap
-brew install --cask braklouis/tap/codex-accounts
-```
-
-旧版 Homebrew 如果没有 `brew trust`，跳过第一行即可。也可以从 [Releases](https://github.com/braklouis/codex-account-switcher/releases/latest) 下载，解压后拖进「应用程序」。
-
-### 提示 Apple 无法验证？
-
-目前还没有做 Apple 公证。如果你信任下载来源，可以这样打开：
-
-1. 先打开一次应用，关闭警告，不要选「移到废纸篓」。
-2. 进入 **系统设置 → 隐私与安全 → 仍要打开**。
-3. 按提示确认，再点「打开」。
-
-不用关闭系统的 Gatekeeper。以上针对「无法验证」提示；如果系统明确提示检测到恶意软件，不要照此放行。[Apple 官方说明](https://support.apple.com/en-us/102445)。
-
-## 怎么用
-
-打开工具，点「保存当前账号」，或者点「登录新账号」通过浏览器添加。出现钥匙串请求时允许访问，然后刷新额度。
-
-选择账号即可切换。切换会重启 Codex，所以先结束正在运行的任务和 CLI 会话。不同账号仍然共用本地任务历史和项目。
-
-语言、菜单栏样式、开机启动和通知都在「设置」里调整。额度每 5 分钟自动检查一次。
-
-目前支持使用 Codex 默认目录和文件登录存储的会员账号，暂不支持 API key 或自定义凭据存储。这是个人开源项目，不是 OpenAI 官方应用。
-
-## 自己编译
-
-安装 Apple 开发工具后：
-
-```sh
-git clone https://github.com/braklouis/codex-account-switcher.git
-cd codex-account-switcher
-swift test --disable-sandbox
 zsh scripts/package.sh
-open 'dist/Codex Accounts.app'
+open "dist/TokenDeck.app"
 ```
 
-最后一行加上 `--args --demo` 可以用虚构账号体验。
+TokenDeck 是自用后续版本。旧 GitHub Release 和 Homebrew cask 仍是 Codex Accounts，不会自动更新为本版本。
 
-## 关于
+改名保留原来的账号、设置和钥匙串标识。切换 Codex 前先结束运行中的任务，因为切换会重启 Codex。
 
-额度展示参考了 [CodexBar](https://github.com/steipete/CodexBar) 的思路。使用 SwiftUI 和 AppKit 开发，图标由 AI 生成。
+本地构建使用临时签名，尚未经过 Apple 公证。可信构建若被 macOS 拦截，可前往「系统设置 → 隐私与安全性 → 仍要打开」，无需关闭 Gatekeeper。
 
-[MIT 许可证](LICENSE) · [安全与隐私](SECURITY.md) · [参与开发](CONTRIBUTING.md)
+## 致谢
+
+多平台接入参考 Peter Steinberger 的 CodexBar（MIT），见 [第三方声明](THIRD_PARTY_NOTICES.md)。TokenDeck 不内嵌凭据，也没有上传账号数据的服务器。

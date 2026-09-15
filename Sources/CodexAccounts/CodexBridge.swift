@@ -124,7 +124,7 @@ import SwitcherCore
             guard let message = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any] else { continue }
             // External-token auth may ask for renewal. Never rotate saved refresh tokens during quota reads.
             if message["method"] != nil, let id = message["id"] {
-                try? send(["id": id, "error": ["code": -32000, "message": "Please sign in again in Codex Accounts."]])
+                try? send(["id": id, "error": ["code": -32000, "message": "Please sign in again in TokenDeck."]])
             } else if let id = message["id"] as? Int, let waiting = pending.removeValue(forKey: id) {
                 if let error = message["error"] as? [String: Any] { waiting.resume(throwing: SwitcherError(RPCContract.errorMessage(error))) }
                 else { waiting.resume(returning: message["result"] as? [String: Any] ?? [:]) }
