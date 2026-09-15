@@ -7,7 +7,6 @@ struct AccountsView: View {
     @State private var removeTarget: Profile?
     @State private var renameTarget: Profile?
     @State private var name = ""
-    private let accent = Color.primary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -18,29 +17,28 @@ struct AccountsView: View {
                 Button { store.refreshQuotas() } label: { Label(L10n.text("刷新额度"), systemImage: "arrow.clockwise") }
                     .disabled(store.busy || store.profiles.isEmpty)
             }.padding(16)
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    if !store.loaded {
-                        ContentUnavailableView {
-                            Label(L10n.text("账号库尚未解锁"), systemImage: "lock.shield")
-                        } description: { Text(L10n.text("允许钥匙串访问后重试，原账号数据会保留。")) }
-                        actions: { Button(L10n.text("重新读取")) { store.reload() } }
-                    } else if store.profiles.isEmpty {
-                        ContentUnavailableView {
-                            Label(L10n.text("先保存你的第一个账号"), systemImage: "person.crop.circle.badge.plus")
-                        } description: { Text(L10n.text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。")) }
-                    }
-                    ForEach(store.orderedProfiles) { profile in
-                        accountCard(profile)
-                        Divider()
-                    }
-                }.padding(.horizontal, 16).padding(.bottom, 16)
+            LazyVStack(spacing: 12) {
+                if !store.loaded {
+                    ContentUnavailableView {
+                        Label(L10n.text("账号库尚未解锁"), systemImage: "lock.shield")
+                    } description: { Text(L10n.text("允许钥匙串访问后重试，原账号数据会保留。")) }
+                    actions: { Button(L10n.text("重新读取")) { store.reload() } }
+                } else if store.profiles.isEmpty {
+                    ContentUnavailableView {
+                        Label(L10n.text("先保存你的第一个账号"), systemImage: "person.crop.circle.badge.plus")
+                    } description: { Text(L10n.text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。")) }
+                }
+                ForEach(store.orderedProfiles) { profile in
+                    accountCard(profile)
+                    Divider()
+                }
             }
+            .padding(.horizontal, 16).padding(.bottom, 16)
             Divider()
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Button { store.addAccount() } label: { Label(L10n.text("登录新账号"), systemImage: "plus") }
-                        .buttonStyle(.borderedProminent).tint(accent).foregroundStyle(Color(nsColor: .windowBackgroundColor))
+                        .buttonStyle(.bordered)
                     Button(L10n.text("保存当前账号")) { store.importCurrent() }
                     Spacer()
                     if store.busy { ProgressView().controlSize(.small) }
@@ -54,7 +52,7 @@ struct AccountsView: View {
                 }.font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(16)
         }
-        .frame(minWidth: 520, minHeight: 220)
+        .frame(minWidth: 520)
         .background(Color(nsColor: .windowBackgroundColor))
         .onReceive(NotificationCenter.default.publisher(for: .chooseAccount)) { note in
             if let id = note.object as? UUID, let profile = store.profiles.first(where: { $0.id == id }) { store.confirmSwitch(profile) }

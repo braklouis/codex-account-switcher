@@ -170,10 +170,10 @@ struct MenuContent: View {
                         emptyState
                     }
                     if ["codex", "claude", "cursor"].contains(products.selected) {
-                        LocalConsumptionView(provider: products.selected)
+                        LocalConsumptionSummary(provider: products.selected) { open("providers") }
                     }
                 }.background(AutoHidingScrollbars()).padding(.horizontal, 12).padding(.bottom, 9)
-            }.frame(height: 260)
+            }.scrollIndicators(.hidden).frame(height: 330)
             Divider()
             HStack {
                 Button(L10n.isEnglish ? "Usage & spend" : "额度与消耗") { open("providers") }

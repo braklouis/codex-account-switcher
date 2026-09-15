@@ -65,7 +65,6 @@ struct LocalConsumptionView: View {
     @State private var expanded = false
     var body: some View {
         DisclosureGroup(L10n.isEnglish ? "Tokens & estimated cost" : "Token 与估算费用", isExpanded: $expanded) {
-            ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if let cost = store.values[provider] { LocalCostCard(cost: cost) }
                     if store.loading.contains(provider) { ProgressView().controlSize(.small) }
@@ -77,7 +76,6 @@ struct LocalConsumptionView: View {
                         Task { await store.refresh(provider, force: true) }
                     }.disabled(store.loading.contains(provider))
                 }.padding(.vertical, 8).frame(maxWidth: .infinity, alignment: .leading)
-            }.frame(maxHeight: 320)
         }
         .task(id: "\(provider)|\(expanded)") {
             if expanded { await store.refresh(provider) }
@@ -170,5 +168,40 @@ struct LocalCostCard: View {
             Text(tokens(value)).monospacedDigit()
             if let amount { Text(dollars(amount)).monospacedDigit() }
         }.font(.caption)
+    }
+}
+
+
+/// A small menu summary; detailed history belongs to the main window.
+struct LocalConsumptionSummary: View {
+    let provider: String
+    var openDetails: () -> Void
+    @ObservedObject private var store = LocalConsumptionStore.shared
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+            HStack(alignment: .top) {
+                amount(L10n.isEnglish ? "Today" : "今日", store.values[provider]?.today?.totalCost)
+                Spacer()
+                amount(L10n.isEnglish ? "30 days" : "近 30 天", store.values[provider]?.last30DaysCostUSD)
+            }
+            Button(action: openDetails) {
+                HStack {
+                    Text(L10n.isEnglish ? "Consumption details" : "消耗详情")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                }
+            }.buttonStyle(.plain)
+            Text(L10n.isEnglish ? "Estimated from tokens · not your bill" : "根据 Token 估算，并非实际账单")
+                .font(.caption2).foregroundStyle(.secondary)
+        }.font(.system(size: 11))
+        .task(id: provider) { await store.refresh(provider) }
+    }
+    private func amount(_ title: String, _ value: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).foregroundStyle(.secondary)
+            Text(value.map { $0.formatted(.currency(code: "USD")) } ?? "—")
+                .font(.system(size: 14, weight: .semibold)).monospacedDigit()
+        }
     }
 }

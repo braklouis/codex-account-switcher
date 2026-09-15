@@ -86,11 +86,11 @@ struct ProviderDashboard: View {
                 }
             }.padding(16)
             Divider()
-            VStack(spacing: 0) {
+            ScrollView {
+              VStack(spacing: 0) {
                 if products.selected == "codex", let codexAccounts {
                     codexAccounts
                 } else {
-                ScrollView {
                     VStack(spacing: 16) {
                         if let rows = usage.rows[products.selected], rows.count > 1 {
                             Picker(L10n.isEnglish ? "Viewing account" : "查看账号", selection: Binding(
@@ -107,12 +107,12 @@ struct ProviderDashboard: View {
                             .buttonStyle(.borderless)
                     }.padding(20)
                 }
-                }
                 if ["codex", "claude", "cursor"].contains(products.selected) {
                     Divider()
                     LocalConsumptionView(provider: products.selected).padding(16)
                 }
-            }
+              }
+            }.scrollIndicators(.hidden)
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .windowBackgroundColor))
             .task(id: products.selected) {
