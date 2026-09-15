@@ -50,7 +50,7 @@ struct MenuQuotaLabel: View {
         let remaining = short ?? weekly
         let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
-        let color = NSColor(srgbRed: 0.40, green: 0.91, blue: 1.0, alpha: 1)
+        let color = NSColor(srgbRed: 0.04, green: 0.36, blue: 0.25, alpha: 1)
         let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
         let topAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
