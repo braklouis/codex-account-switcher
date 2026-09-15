@@ -122,7 +122,7 @@ struct AccountUsageCard: View {
             }.padding(.top, 2)
         }.padding(flat ? 4 : (compact ? 12 : 20))
             .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(flat ? Color.clear : (active ? green.opacity(0.45) : Color.primary.opacity(0.08)), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke((flat || compact) ? Color.clear : (active ? green.opacity(0.45) : Color.primary.opacity(0.08)), lineWidth: 1))
 
     }
     private func updateLabel(_ date: Date, now: Date) -> String {

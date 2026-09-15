@@ -169,11 +169,12 @@ struct MenuContent: View {
                     } else {
                         emptyState
                     }
-                    if ["codex", "claude", "cursor"].contains(products.selected) {
-                        LocalConsumptionSummary(provider: products.selected) { open("providers") }
-                    }
-                }.background(AutoHidingScrollbars()).padding(.horizontal, 12).padding(.bottom, 9)
-            }.scrollIndicators(.hidden).frame(height: 330)
+                }.padding(.leading, 12).padding(.trailing, 24).padding(.bottom, 9)
+            }.scrollIndicators(.hidden).frame(height: 260)
+            if ["codex", "claude", "cursor"].contains(products.selected) {
+                LocalConsumptionSummary(provider: products.selected) { open("providers") }
+                    .padding(.horizontal, 16).padding(.bottom, 12)
+            }
             Divider()
             HStack {
                 Button(L10n.isEnglish ? "Usage & spend" : "额度与消耗") { open("providers") }
