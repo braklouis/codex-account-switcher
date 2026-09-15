@@ -1,20 +1,7 @@
 import SwiftUI
 
-/// Uses the system material, including its contrast and reduced-transparency behavior.
+/// Let the native popover provide its material, vibrancy, and accessibility.
+/// An additional full-panel glass effect duplicates compositing and reduces contrast.
 struct MenuGlassSurface: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    @ViewBuilder func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            if reduceTransparency {
-                content.background(Color(nsColor: .windowBackgroundColor))
-            } else {
-                content
-                    .containerBackground(.clear, for: .window)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 22))
-            }
-        } else {
-            content.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
-        }
-    }
+    func body(content: Content) -> some View { content }
 }

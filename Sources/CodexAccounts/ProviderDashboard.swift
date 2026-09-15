@@ -8,11 +8,18 @@ import Darwin
     static let shared = ProviderUsageStore()
     @Published private(set) var rows: [String: [ProviderUsage]] = [:]
     @Published private(set) var selectedAccounts: [String: Int] = [:]
-    @Published private(set) var loading = false
+    @Published private(set) var loadingProviders: Set<String> = []
+    var loading: Bool { !loadingProviders.isEmpty }
+    func isLoading(_ provider: String) -> Bool { loadingProviders.contains(provider) }
     @Published private(set) var errors: [String: String] = [:]
     private var refreshedAt: [String: Date] = [:]
     private var selectionKeys: [String: String] = UserDefaults.standard.dictionary(forKey: "providerAccountSelections") as? [String: String] ?? [:]
-    private var activeTask: Task<ProviderCLI.Result, Never>?
+    private var activeTasks: [String: Task<ProviderCLI.Result, Never>] = [:]
+
+    private let fetch: (String) async -> ProviderCLI.Result
+    init(fetch: @escaping (String) async -> ProviderCLI.Result = { await ProviderCLI.fetch(provider: $0) }) {
+        self.fetch = fetch
+    }
 
     func selectedUsage(provider: String) -> ProviderUsage? {
         guard let values = rows[provider], !values.isEmpty else { return nil }
@@ -27,17 +34,18 @@ import Darwin
         UserDefaults.standard.set(selectionKeys, forKey: "providerAccountSelections")
     }
     func refresh(provider: String, force: Bool = false) async {
-        while let task = activeTask {
+        // Coalesce duplicate requests without blocking unrelated products.
+        if let task = activeTasks[provider] {
             _ = await task.value
-            await Task.yield()
+            return
         }
         guard !Task.isCancelled else { return }
         guard force || Date().timeIntervalSince(refreshedAt[provider] ?? .distantPast) >= 60 else { return }
-        loading = true
-        let task = Task { await ProviderCLI.fetch(provider: provider) }
-        activeTask = task
+        loadingProviders.insert(provider)
+        let task = Task { await fetch(provider) }
+        activeTasks[provider] = task
         let result = await task.value
-        defer { activeTask = nil; loading = false }
+        defer { activeTasks.removeValue(forKey: provider); loadingProviders.remove(provider) }
         refreshedAt[provider] = Date()
         if result.rows.isEmpty {
             errors[provider] = result.toolMissing
@@ -62,37 +70,30 @@ struct ProviderDashboard: View {
     @State private var costError: String?
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("TOKENDECK").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(.teal).padding(.bottom, 18)
-                ForEach(products.enabled, id: \.self) { id in
-                    Button { products.selected = id } label: {
-                        HStack(spacing: 9) {
-                            ProviderBrandIcon(provider: id)
-                                .frame(width: 18, height: 18)
-                            Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
-                            Spacer()
-                        }.font(.system(size: 13, weight: .medium)).padding(10)
-                            .foregroundStyle(products.selected == id ? Color.teal : Color.primary)
-                            .background(products.selected == id ? Color.teal.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 9))
-                    }.buttonStyle(.plain)
-                }
+        VStack(spacing: 0) {
+            HStack {
+                Picker(L10n.isEnglish ? "Product" : "产品", selection: $products.selected) {
+                    ForEach(products.enabled, id: \.self) { id in
+                        Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
+                            .tag(id)
+                    }
+                }.labelsHidden().frame(width: 200)
                 Spacer()
-                Button { showProducts() } label: {
-                    Label(L10n.isEnglish ? "Choose products" : "选择产品", systemImage: "slider.horizontal.3")
-                }.buttonStyle(.borderless)
-            }.padding(18).frame(width: 190).background(Color.primary.opacity(0.025))
+                Button(action: showProducts) {
+                    Label(L10n.isEnglish ? "Products" : "产品", systemImage: "slider.horizontal.3")
+                }
+            }.padding(16)
             Divider()
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(ProductPreferences.catalog.first { $0.id == products.selected }?.name ?? products.selected).font(.system(size: 25, weight: .semibold))
+                        Text(ProductPreferences.catalog.first { $0.id == products.selected }?.name ?? products.selected).font(.title2.weight(.semibold))
                         Text(L10n.isEnglish ? "Usage, resets and spending" : "额度、重置时间与消耗").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Button { Task { await usage.refresh(provider: products.selected, force: true) } } label: {
                         Image(systemName: "arrow.clockwise")
-                    }.disabled(usage.loading)
+                    }.disabled(usage.isLoading(products.selected))
                 }.padding(24)
                 Divider()
                 ScrollView {
@@ -105,7 +106,7 @@ struct ProviderDashboard: View {
                             }
                         }
                         if let row = usage.selectedUsage(provider: products.selected) { ProviderUsageCard(usage: row) }
-                        else if usage.loading { ProgressView().padding(40) }
+                        else if usage.isLoading(products.selected) { ProgressView().padding(40) }
                         else { ContentUnavailableView(L10n.isEnglish ? "Connect your account" : "连接你的账号", systemImage: "person.crop.circle.badge.plus") }
                         if let error = usage.errors[products.selected] { Text(error).font(.caption).foregroundStyle(.orange) }
                         Button(L10n.isEnglish ? "Login & product settings" : "登录与产品设置") { showProducts() }
@@ -120,7 +121,7 @@ struct ProviderDashboard: View {
                     }.padding(20)
                 }
             }
-        }.frame(minWidth: 700, minHeight: 500)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .windowBackgroundColor))
             .task(id: products.selected) { await usage.refresh(provider: products.selected) }
     }
@@ -183,11 +184,11 @@ struct ProviderUsageCard: View {
                     if let month = cost.last30DaysUSD { Text((L10n.isEnglish ? "30 days " : "近 30 天 ") + month.formatted(.currency(code: "USD"))) }
                 }.font(.caption).foregroundStyle(.secondary)
             }
-            if let updated = usage.updatedAt { Text(updated, style: .relative).font(.caption2).foregroundStyle(.secondary) }
+            if let updated = usage.updatedAt { Text(updated, format: .dateTime.hour().minute()).font(.caption2).foregroundStyle(.secondary) }
         }
         .padding(compact ? 12 : 20)
-        .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.08)))
+        .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.primary.opacity(0.08)))
     }
 }
 
@@ -196,9 +197,9 @@ private struct UsageWindowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack { Text(window.label).font(.system(size: 12, weight: .medium)); Spacer(); Text("\(Int(window.remaining.rounded()))%").font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit() }
-            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : .teal)
+            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : .accentColor)
             if let reset = window.resetAt {
-                HStack { Image(systemName: "clock"); Text(reset, style: .relative); Spacer(); Text(reset, style: .date) }
+                HStack { Image(systemName: "clock"); Text(reset, format: .dateTime.hour().minute()); Spacer(); Text(reset, style: .date) }
                     .font(.caption2).foregroundStyle(.secondary)
             }
         }
@@ -412,6 +413,6 @@ private struct LocalCostCard: View {
             }
             Text(L10n.isEnglish ? "Local records may be incomplete. Cost is an estimate, not your subscription bill. Shared local history is not limited to the active account." : "本地记录可能不完整。费用为估算，不是会员实际账单；共享历史也不限于当前账号。")
                 .font(.caption).foregroundStyle(.secondary)
-        }.padding(20).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+        }.padding(20).background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
     }
 }

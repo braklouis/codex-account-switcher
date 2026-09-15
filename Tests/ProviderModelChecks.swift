@@ -24,6 +24,25 @@ enum L10n { static let isEnglish = true }
   assert(ProviderCLI.decodeRows(Data(err.utf8),provider:"kimi")[0].errorMessage?.contains("sensitive") == false)
   print("PASS preferences: defaults, deselection, last enabled, persistence")
   print("PASS parser: multi-account, provider isolation, dates, time window, credits, safe error")
+  var calls: [String: Int] = [:]
+  var concurrent = 0
+  var peak = 0
+  let store = ProviderUsageStore(fetch: { provider in
+   calls[provider, default: 0] += 1
+   concurrent += 1; peak = max(peak, concurrent)
+   try? await Task.sleep(nanoseconds: 100_000_000)
+   concurrent -= 1
+   return ProviderCLI.Result(rows: [])
+  })
+  async let first: Void = store.refresh(provider: "grok")
+  async let duplicate: Void = store.refresh(provider: "grok")
+  async let other: Void = store.refresh(provider: "kimi")
+  _ = await (first, duplicate, other)
+  assert(calls["grok"] == 1 && calls["kimi"] == 1 && peak == 2)
+  assert(!store.loading)
+  await store.refresh(provider: "grok")
+  assert(calls["grok"] == 1)
+  print("PASS refresh: duplicate coalescing, independent providers, cooldown, loading cleanup")
   guard CommandLine.arguments.contains("--live") else { return }
   for id in ["grok","openrouter"] {
    let result=await ProviderCLI.fetch(provider:id)

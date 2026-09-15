@@ -135,7 +135,7 @@ struct PreferencesView: View {
                     Text(L10n.text("进度条")).tag("bars")
                     Text(L10n.text("百分比＋进度条")).tag("both")
                 }.pickerStyle(.segmented)
-                Text(L10n.text("上行粉色显示短期额度，下行蓝色显示每周额度；仅显示当前账号的 Codex 主额度。未提供或读取失败时显示 —。"))
+                Text(L10n.isEnglish ? "Time remaining above, quota below. Left bar: time; right bar: quota. Unavailable values appear as —." : "上行显示剩余时间，下行显示额度。左条代表时间，右条代表额度；无数据时显示 —。")
                     .font(.caption).foregroundStyle(.secondary)
                 MenuQuotaPreview(style: preferences.menuQuotaStyle)
             }

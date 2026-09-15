@@ -30,7 +30,7 @@ struct AccountUsageCard: View {
     var showsManagement = true
     var compact = false
     @State private var expanded = false
-    private let green = Color(red: 0.10, green: 0.52, blue: 0.41)
+    private let green = Color.accentColor
     private var active: Bool { profile.snapshot?.identity == store.activeIdentity }
     private var title: String {
         if profile.name == profile.snapshot?.email {
@@ -120,9 +120,9 @@ struct AccountUsageCard: View {
                 }
             }.padding(.top, 2)
         }.padding(compact ? 12 : 20)
-            .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(active ? green.opacity(0.45) : Color.primary.opacity(0.08), lineWidth: 1))
-            .shadow(color: .black.opacity(0.025), radius: 8, y: 3)
+            .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(active ? green.opacity(0.45) : Color.primary.opacity(0.08), lineWidth: 1))
+
     }
     private func updateLabel(_ date: Date, now: Date) -> String {
         let mins = max(0, Int(now.timeIntervalSince(date) / 60))
@@ -161,13 +161,8 @@ struct QuotaMeter: View {
                 Text("\(Int(window.remaining))").font(.system(size: compact ? 18 : 22, weight: .semibold, design: .rounded)).monospacedDigit()
                 Text("%").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
             }
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.primary.opacity(0.055))
-                    Capsule().fill(LinearGradient(colors: [color.opacity(0.75), color], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: geometry.size.width * window.remaining / 100)
-                }
-            }.frame(height: 7)
+            ProgressView(value: max(0, min(100, window.remaining)), total: 100)
+                .tint(color)
                 .accessibilityLabel("\(window.title)剩余 \(Int(window.remaining))%")
             if let reset = window.resetsAt {
                 TimelineView(.periodic(from: .now, by: 60)) { timeline in

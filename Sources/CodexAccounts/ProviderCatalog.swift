@@ -137,98 +137,91 @@ struct ProductSettingsView: View {
     @State private var codexBarMissing = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text(L10n.isEnglish ? "Choose the products shown in TokenDeck." : "选择要在 TokenDeck 中显示的产品。")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    productList
-                    selectedDetails
-                    if codexBarMissing {
-                        Label(
-                            L10n.isEnglish ? "CodexBar was not found in /Applications." : "在 /Applications 中找不到 CodexBar。",
-                            systemImage: "exclamationmark.triangle"
-                        ).font(.caption).foregroundStyle(.orange)
-                    }
-                }.padding(22)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .tint(Color(red: 0.10, green: 0.52, blue: 0.41))
-    }
+        Form {
+            Section {
+                Text(L10n.isEnglish ? "Choose the products shown in TokenDeck." : "选择要在 TokenDeck 中显示的产品。")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-    private var header: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "square.grid.2x2.fill")
-                .font(.system(size: 25, weight: .semibold)).foregroundStyle(.teal)
-            VStack(alignment: .leading, spacing: 3) {
+                Picker(
+                    L10n.isEnglish ? "Selected product" : "当前产品",
+                    selection: $preferences.selected
+                ) {
+                    ForEach(preferences.enabled, id: \.self) { id in
+                        if let product = preferences.definition(for: id) {
+                            Text(product.name).tag(product.id)
+                        }
+                    }
+                }
+            } header: {
                 Text(L10n.isEnglish ? "AI products" : "AI 产品")
-                    .font(.system(size: 24, weight: .semibold))
-                Text(L10n.isEnglish ? "Select a product to view and configure" : "选择产品以查看和配置登录")
-                    .font(.caption).foregroundStyle(.secondary)
             }
-            Spacer()
-        }.padding(22)
-    }
 
-    private var productList: some View {
-        LazyVStack(spacing: 9) {
-            ForEach(ProductPreferences.catalog) { product in
-                let isEnabled = preferences.enabled.contains(product.id)
-                let isSelected = preferences.selected == product.id
-                HStack(spacing: 12) {
-                    ProviderBrandIcon(provider: product.id).frame(width: 21, height: 21).foregroundStyle(isSelected ? .teal : .secondary)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(product.name).font(.system(size: 13, weight: .medium))
-                        if isSelected { Text(L10n.isEnglish ? "Selected" : "当前选择").font(.caption2).foregroundStyle(.teal) }
-                    }
-                    Spacer()
-                    Toggle("", isOn: Binding(
+            Section {
+                ForEach(ProductPreferences.catalog) { product in
+                    Toggle(isOn: Binding(
                         get: { preferences.enabled.contains(product.id) },
                         set: { preferences.setEnabled(id: product.id, enabled: $0) }
-                    )).labelsHidden().toggleStyle(.checkbox).disabled(isEnabled && preferences.enabled.count == 1)
-                    Button { preferences.selected = product.id } label: {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .font(.title3).foregroundStyle(isSelected ? .teal : .secondary)
-                    }.buttonStyle(.plain).disabled(!isEnabled).help(L10n.isEnglish ? "Select" : "选择")
+                    )) {
+                        Label {
+                            Text(product.name)
+                        } icon: {
+                            ProviderBrandIcon(provider: product.id)
+                                .frame(width: 18, height: 18)
+                        }
+                    }
+                    .disabled(preferences.enabled.contains(product.id) && preferences.enabled.count == 1)
                 }
-                .padding(.horizontal, 14).padding(.vertical, 10)
-                .background(isSelected ? Color.teal.opacity(0.10) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(isSelected ? Color.teal.opacity(0.35) : Color.primary.opacity(0.07)))
-                .contentShape(Rectangle())
-                .onTapGesture { if isEnabled { preferences.selected = product.id } }
+            } header: {
+                Text(L10n.isEnglish ? "Enabled products" : "启用的产品")
+            } footer: {
+                Text(L10n.isEnglish ? "At least one product must stay enabled." : "至少要保留一个启用的产品。")
+            }
+
+            selectedDetails
+
+            if codexBarMissing {
+                Section {
+                    Label(
+                        L10n.isEnglish ? "CodexBar was not found in /Applications." : "在 /Applications 中找不到 CodexBar。",
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .foregroundStyle(.orange)
+                }
             }
         }
+        .formStyle(.grouped)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    @ViewBuilder
     private var selectedDetails: some View {
-        Group {
-            if let product = preferences.definition(for: preferences.selected) {
-                VStack(alignment: .leading, spacing: 13) {
-                    HStack {
-                        Label(L10n.isEnglish ? "Login for \(product.name)" : "\(product.name) 登录配置", systemImage: "person.crop.circle.badge.checkmark")
-                            .font(.headline)
-                        Spacer()
-                        Link(destination: product.docsURL) { Label("CodexBar docs", systemImage: "book.pages") }.font(.caption)
-                    }
-                    Text(L10n.isEnglish ? product.loginHintEN : product.loginHintZH)
-                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                    Button {
-                        let appURL = URL(fileURLWithPath: "/Applications/CodexBar.app")
-                        codexBarMissing = !FileManager.default.fileExists(atPath: appURL.path)
-                        NSWorkspace.shared.open(appURL)
-                    } label: {
-                        Label(L10n.isEnglish ? "Open CodexBar" : "打开 CodexBar", systemImage: "arrow.up.forward.app")
-                    }.buttonStyle(.borderedProminent)
-                    Text(L10n.isEnglish ? "In CodexBar: Settings → Providers → \(product.name). Existing logins are reused; TokenDeck does not copy your secrets." : "在 CodexBar 中进入：设置 → 提供商 → \(product.name)。已有登录可直接复用，TokenDeck 不复制密钥。")
-                        .font(.caption2).foregroundStyle(.secondary)
+        if let product = preferences.definition(for: preferences.selected) {
+            Section {
+                Text(L10n.isEnglish ? product.loginHintEN : product.loginHintZH)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button {
+                    let appURL = URL(fileURLWithPath: "/Applications/CodexBar.app")
+                    codexBarMissing = !FileManager.default.fileExists(atPath: appURL.path)
+                    NSWorkspace.shared.open(appURL)
+                } label: {
+                    Label(L10n.isEnglish ? "Open CodexBar" : "打开 CodexBar", systemImage: "arrow.up.forward.app")
                 }
-                .padding(16)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.08)))
+
+                Text(L10n.isEnglish ? "In CodexBar: Settings → Providers → \(product.name). Existing logins are reused; TokenDeck does not copy your secrets." : "在 CodexBar 中进入：设置 → 提供商 → \(product.name)。已有登录可直接复用，TokenDeck 不复制密钥。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                HStack {
+                    Label(L10n.isEnglish ? "Login for \(product.name)" : "\(product.name) 登录配置", systemImage: "person.crop.circle.badge.checkmark")
+                    Spacer()
+                    Link(destination: product.docsURL) {
+                        Label("CodexBar docs", systemImage: "book.pages")
+                    }
+                }
             }
         }
     }

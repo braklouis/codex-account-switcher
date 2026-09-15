@@ -23,30 +23,17 @@ struct WorkspaceView: View {
     @ObservedObject private var language = AppPreferences.shared
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 20) {
-                HStack(spacing: 8) {
-                    AppBrandIcon().frame(width: 25, height: 25)
-                    Text("TokenDeck").font(.headline)
-                }
-                Spacer()
-                Picker("", selection: $navigation.page) {
-                    ForEach(WorkspacePage.allCases, id: \.self) { page in
-                        Text(page.title).tag(page)
-                    }
-                }.pickerStyle(.segmented).labelsHidden().frame(width: 370)
-            }.padding(.horizontal, 20).padding(.vertical, 14)
-            Divider()
-            Group {
-                switch navigation.page {
-                case .usage: ProviderDashboard(showProducts: { navigation.page = .products })
-                case .accounts: AccountsView(store: store)
-                case .products: ProductSettingsView()
-                case .preferences: PreferencesView()
-                }
-            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        TabView(selection: $navigation.page) {
+            ProviderDashboard(showProducts: { navigation.page = .products })
+                .tabItem { Label(WorkspacePage.usage.title, systemImage: "chart.bar") }.tag(WorkspacePage.usage)
+            AccountsView(store: store)
+                .tabItem { Label(WorkspacePage.accounts.title, systemImage: "person.crop.circle") }.tag(WorkspacePage.accounts)
+            ProductSettingsView()
+                .tabItem { Label(WorkspacePage.products.title, systemImage: "square.grid.2x2") }.tag(WorkspacePage.products)
+            PreferencesView()
+                .tabItem { Label(WorkspacePage.preferences.title, systemImage: "gearshape") }.tag(WorkspacePage.preferences)
         }
-        .frame(minWidth: 720, minHeight: 680)
-        .tint(Color(red: 0.10, green: 0.52, blue: 0.41))
+        .padding(12)
+        .frame(minWidth: 680, minHeight: 600)
     }
 }

@@ -83,7 +83,7 @@ struct MenuContent: View {
     @ObservedObject private var usage = ProviderUsageStore.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
-    private let tint = Color(red: 0.10, green: 0.52, blue: 0.41)
+    private let tint = Color.accentColor
     private var isCodex: Bool { products.selected == "codex" }
     private var activeProfile: Profile? {
         store.orderedProfiles.first { $0.snapshot?.identity == store.activeIdentity } ?? store.orderedProfiles.first
@@ -102,7 +102,7 @@ struct MenuContent: View {
                     .help(L10n.isEnglish ? "Choose products" : "选择产品")
                 Button { refresh(force: true) } label: {
                     Image(systemName: "arrow.clockwise")
-                }.disabled(isCodex ? store.busy : usage.loading)
+                }.disabled(isCodex ? store.busy : usage.isLoading(products.selected))
             }.buttonStyle(.borderless).padding(12)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
@@ -164,7 +164,7 @@ struct MenuContent: View {
                         }
                     } else if let row = usage.selectedUsage(provider: products.selected) {
                         ProviderUsageCard(usage: row, compact: true)
-                    } else if usage.loading {
+                    } else if usage.isLoading(products.selected) {
                         ProgressView().padding(40)
                     } else {
                         emptyState

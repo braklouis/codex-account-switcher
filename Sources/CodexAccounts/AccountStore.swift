@@ -54,10 +54,15 @@ import SwitcherCore
     }
     func refreshActive() {
         guard !demo else { return }
-        activeIdentity = nil; activeEmail = nil
+        let nextIdentity: String?
+        let nextEmail: String?
         if let data = try? bridge.live(), let auth = try? AuthSnapshot(data: data) {
-            activeIdentity = auth.identity; activeEmail = auth.email
+            nextIdentity = auth.identity; nextEmail = auth.email
+        } else {
+            nextIdentity = nil; nextEmail = nil
         }
+        if activeIdentity != nextIdentity { activeIdentity = nextIdentity }
+        if activeEmail != nextEmail { activeEmail = nextEmail }
     }
     func persist(_ next: [Profile]) throws {
         guard loaded else { throw SwitcherError("请先解锁账号库。") }
@@ -69,7 +74,11 @@ import SwitcherCore
         var next = profiles
         let id: UUID
         if let index = next.firstIndex(where: { $0.snapshot?.identity == auth.identity }) {
-            next[index].auth = data; id = next[index].id
+            id = next[index].id
+            let currentName = next[index].name
+            let nextName = name?.isEmpty == false ? name! : currentName
+            guard next[index].auth != data || currentName != nextName else { return id }
+            next[index].auth = data
             if let name, !name.isEmpty { next[index].name = name }
         } else {
             let profile = Profile(name: name?.isEmpty == false ? name! : auth.email, auth: data)
