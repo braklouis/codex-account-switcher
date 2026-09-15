@@ -162,7 +162,7 @@ struct PreferencesView: View {
                     }
                 }
             }
-            if let message = preferences.message { Text(L10n.text(message)).font(.caption).foregroundStyle(.orange) }
+            if let message = preferences.message { Text(L10n.text(message)).font(.caption).foregroundStyle(.secondary) }
         }.formStyle(.grouped).frame(maxWidth: .infinity, maxHeight: .infinity)
             .onAppear { preferences.refreshLoginStatus(); Task { await preferences.updateNotificationPermission() } }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in

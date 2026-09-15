@@ -15,7 +15,7 @@ struct AppBrandIcon: View {
             Image(nsImage: image).resizable().interpolation(.high).scaledToFit()
         } else {
             Image(systemName: "arrow.triangle.swap").resizable().scaledToFit().padding(16)
-                .foregroundStyle(.white).background(Color.teal, in: RoundedRectangle(cornerRadius: 16))
+                .foregroundStyle(.white).background(Color.primary, in: RoundedRectangle(cornerRadius: 16))
         }
     }
 }
@@ -31,7 +31,7 @@ struct AccountUsageCard: View {
     var compact = false
     var flat = false
     @State private var expanded = false
-    private let green = Color(red: 0.04, green: 0.36, blue: 0.25)
+    private let green = Color.primary
     private var active: Bool { profile.snapshot?.identity == store.activeIdentity }
     private var title: String {
         if profile.name == profile.snapshot?.email {
@@ -103,7 +103,7 @@ struct AccountUsageCard: View {
                 }.foregroundStyle(.secondary).padding(.vertical, 12)
             }
             if let error = store.quotaErrors[profile.id] {
-                Label(L10n.text(error), systemImage: "exclamationmark.circle").font(.system(size: 11)).foregroundStyle(.orange)
+                Label(L10n.text(error), systemImage: "exclamationmark.circle").font(.system(size: 11)).foregroundStyle(.secondary)
             }
             HStack {
                 if active {
@@ -156,7 +156,7 @@ struct QuotaMeter: View {
     let tint: Color
     var compact = false
     var dense = false
-    private var color: Color { window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : tint }
+    private var color: Color { tint }
     @ViewBuilder var body: some View {
         if dense {
             HStack(spacing: 10) {

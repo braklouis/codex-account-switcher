@@ -83,7 +83,7 @@ struct MenuContent: View {
     @ObservedObject private var usage = ProviderUsageStore.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
-    private let tint = Color(red: 0.04, green: 0.36, blue: 0.25)
+    private let tint = Color.primary
     private var isCodex: Bool { products.selected == "codex" }
     private var activeProfile: Profile? {
         store.orderedProfiles.first { $0.snapshot?.identity == store.activeIdentity } ?? store.orderedProfiles.first

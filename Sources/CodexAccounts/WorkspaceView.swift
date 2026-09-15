@@ -36,18 +36,18 @@ struct WorkspaceView: View {
                         HStack(spacing: 9) {
                             Image(systemName: page.symbol)
                                 .symbolRenderingMode(.monochrome)
-                                .foregroundStyle(navigation.page == page ? Color.white : Color.primary)
+                                .foregroundStyle(navigation.page == page ? Color(nsColor: .windowBackgroundColor) : Color.primary)
                                 .frame(width: 18)
                             Text(page.title)
                         }
                             .font(.body.weight(navigation.page == page ? .semibold : .regular))
-                            .foregroundStyle(navigation.page == page ? Color.white : Color.primary)
+                            .foregroundStyle(navigation.page == page ? Color(nsColor: .windowBackgroundColor) : Color.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 6)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(RoundedRectangle(cornerRadius: 8).fill(navigation.page == page ? Color(red: 0.04, green: 0.36, blue: 0.25) : Color.clear).padding(.horizontal, 6))
+                    .listRowBackground(RoundedRectangle(cornerRadius: 8).fill(navigation.page == page ? Color.primary : Color.clear).padding(.horizontal, 6))
                     .accessibilityAddTraits(navigation.page == page ? .isSelected : [])
                 }
             }
@@ -68,7 +68,7 @@ struct WorkspaceView: View {
             .background(Color(nsColor: .windowBackgroundColor))
         }
         .tint(.primary)
-        .accentColor(Color(red: 0.04, green: 0.36, blue: 0.25))
+        .accentColor(Color.primary)
         .frame(minWidth: 740, minHeight: 600)
     }
 }

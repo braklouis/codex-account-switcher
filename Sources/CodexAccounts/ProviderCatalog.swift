@@ -186,7 +186,7 @@ struct ProductSettingsView: View {
                         L10n.isEnglish ? "CodexBar was not found in /Applications." : "在 /Applications 中找不到 CodexBar。",
                         systemImage: "exclamationmark.triangle"
                     )
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.secondary)
                 }
             }
         }

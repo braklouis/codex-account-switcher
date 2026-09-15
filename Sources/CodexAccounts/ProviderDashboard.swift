@@ -106,7 +106,7 @@ struct ProviderDashboard: View {
                         if let row = usage.selectedUsage(provider: products.selected) { ProviderUsageCard(usage: row) }
                         else if usage.isLoading(products.selected) { ProgressView().padding(40) }
                         else { ContentUnavailableView(L10n.isEnglish ? "Connect your account" : "连接你的账号", systemImage: "person.crop.circle.badge.plus") }
-                        if let error = usage.errors[products.selected] { Text(error).font(.caption).foregroundStyle(.orange) }
+                        if let error = usage.errors[products.selected] { Text(error).font(.caption).foregroundStyle(.secondary) }
                         Button(L10n.isEnglish ? "Login & product settings" : "登录与产品设置") { showProducts() }
                             .buttonStyle(.borderless)
                     }.padding(20)
@@ -152,7 +152,7 @@ struct ProviderUsageCard: View {
                 if let account = usage.account, !account.isEmpty { Text(account).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
             }
             if let error = usage.errorMessage {
-                Label(error, systemImage: "info.circle").font(.system(size: 12)).foregroundStyle(.orange)
+                Label(error, systemImage: "info.circle").font(.system(size: 12)).foregroundStyle(.secondary)
             }
             if usage.windows.isEmpty && usage.errorMessage == nil && (usage.details ?? []).isEmpty && usage.credits == nil {
                 Text(L10n.isEnglish ? "No usage window was provided by this provider." : "该提供商没有返回可用的额度窗口。").font(.caption).foregroundStyle(.secondary)
@@ -202,7 +202,7 @@ private struct UsageWindowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack { Text(window.label).font(.system(size: 12, weight: .medium)); Spacer(); Text("\(Int(window.remaining.rounded()))%").font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit() }
-            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : Color(red: 0.04, green: 0.36, blue: 0.25))
+            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(Color.primary)
             if let reset = window.resetAt {
                 HStack { Image(systemName: "clock"); Text(reset, format: .dateTime.hour().minute()); Spacer(); Text(reset, style: .date) }
                     .font(.caption2).foregroundStyle(.secondary)
