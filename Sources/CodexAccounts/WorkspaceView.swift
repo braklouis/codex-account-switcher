@@ -33,8 +33,12 @@ struct WorkspaceView: View {
             List {
                 ForEach(WorkspacePage.allCases, id: \.self) { page in
                     Button { navigation.page = page } label: {
-                        Label { Text(page.title) } icon: {
-                            Image(systemName: page.symbol).foregroundStyle(navigation.page == page ? Color.white : Color(nsColor: .systemGreen))
+                        HStack(spacing: 9) {
+                            Image(systemName: page.symbol)
+                                .symbolRenderingMode(.monochrome)
+                                .foregroundStyle(navigation.page == page ? Color.white : Color.primary)
+                                .frame(width: 18)
+                            Text(page.title)
                         }
                             .font(.body.weight(navigation.page == page ? .semibold : .regular))
                             .foregroundStyle(navigation.page == page ? Color.white : Color.primary)
@@ -43,7 +47,7 @@ struct WorkspaceView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(RoundedRectangle(cornerRadius: 8).fill(navigation.page == page ? Color(nsColor: .systemGreen) : Color.clear).padding(.horizontal, 6))
+                    .listRowBackground(RoundedRectangle(cornerRadius: 8).fill(navigation.page == page ? Color(red: 0.04, green: 0.36, blue: 0.25) : Color.clear).padding(.horizontal, 6))
                     .accessibilityAddTraits(navigation.page == page ? .isSelected : [])
                 }
             }
@@ -63,7 +67,8 @@ struct WorkspaceView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .tint(Color(nsColor: .systemGreen))
+        .tint(.primary)
+        .accentColor(Color(red: 0.04, green: 0.36, blue: 0.25))
         .frame(minWidth: 740, minHeight: 600)
     }
 }

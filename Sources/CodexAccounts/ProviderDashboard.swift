@@ -202,7 +202,7 @@ private struct UsageWindowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack { Text(window.label).font(.system(size: 12, weight: .medium)); Spacer(); Text("\(Int(window.remaining.rounded()))%").font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit() }
-            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : Color(nsColor: .systemGreen))
+            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : Color(red: 0.04, green: 0.36, blue: 0.25))
             if let reset = window.resetAt {
                 HStack { Image(systemName: "clock"); Text(reset, format: .dateTime.hour().minute()); Spacer(); Text(reset, style: .date) }
                     .font(.caption2).foregroundStyle(.secondary)

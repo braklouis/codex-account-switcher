@@ -83,7 +83,7 @@ struct MenuContent: View {
     @ObservedObject private var usage = ProviderUsageStore.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
-    private let tint = Color(nsColor: .systemGreen)
+    private let tint = Color(red: 0.04, green: 0.36, blue: 0.25)
     private var isCodex: Bool { products.selected == "codex" }
     private var activeProfile: Profile? {
         store.orderedProfiles.first { $0.snapshot?.identity == store.activeIdentity } ?? store.orderedProfiles.first
@@ -181,7 +181,8 @@ struct MenuContent: View {
         }
         .frame(width: 330)
         .modifier(MenuGlassSurface())
-        .tint(tint)
+        .tint(.primary)
+        .accentColor(tint)
         .task(id: products.selected) { refresh(force: false) }
     }
     private func accountControl(title: String, account: String?) -> some View {

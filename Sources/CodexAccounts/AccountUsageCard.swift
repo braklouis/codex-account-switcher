@@ -30,7 +30,7 @@ struct AccountUsageCard: View {
     var showsManagement = true
     var compact = false
     @State private var expanded = false
-    private let green = Color(nsColor: .systemGreen)
+    private let green = Color(red: 0.04, green: 0.36, blue: 0.25)
     private var active: Bool { profile.snapshot?.identity == store.activeIdentity }
     private var title: String {
         if profile.name == profile.snapshot?.email {
