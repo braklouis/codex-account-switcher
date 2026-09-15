@@ -17,9 +17,14 @@ struct MenuQuotaLabel: View {
         let selected = short ?? week
         Image(nsImage: StatusQuotaDrawing.image(style: preferences.menuQuotaStyle,
             short: short?.remaining, weekly: week?.remaining,
-            countdown: countdown(selected, now: now)))
+            countdown: countdown(selected, now: now), timeRemaining: timeRemaining(selected, now: now)))
             .accessibilityLabel(L10n.isEnglish ? "Remaining quota \(value(selected)); \(countdown(selected, now: now)) until reset" : "剩余额度 \(value(selected))；距重置 \(countdown(selected, now: now))")
             .help(L10n.isEnglish ? "Time remaining / window duration. Short-term \(value(short)) · Weekly \(value(week))" : "距重置剩余时间 / 窗口总时长。短期 \(value(short)) · 每周 \(value(week))")
+    }
+    private func timeRemaining(_ window: QuotaWindow?, now: Date) -> Double? {
+        guard let window, let minutes = window.windowDurationMins, minutes > 0,
+              let reset = window.resetsAt else { return nil }
+        return max(0, min(100, (reset - now.timeIntervalSince1970) / (Double(minutes) * 60) * 100))
     }
     private func countdown(_ window: QuotaWindow?, now: Date) -> String {
         guard let window, let minutes = window.windowDurationMins, let reset = window.resetsAt else { return "—" }
@@ -46,9 +51,10 @@ struct MenuQuotaLabel: View {
 /// Draws at the backing scale chosen by AppKit, retaining crisp two-row text on Retina screens.
 @MainActor enum StatusQuotaDrawing {
     private static var cache: [String: NSImage] = [:]
-    static func image(style: String, short: Double?, weekly: Double?, countdown: String = "4.3/5h") -> NSImage {
+    static func image(style: String, short: Double?, weekly: Double?, countdown: String = "4.3/5h", timeRemaining: Double? = nil) -> NSImage {
         let remaining = short ?? weekly
-        let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
+        let timeSegments = timeRemaining.map { Int(ceil(max(0, min(100, $0)) / 100 * 8)) }
+        let key = "\(String(describing: timeSegments))|\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
         let color = NSColor(srgbRed: 0.04, green: 0.36, blue: 0.25, alpha: 1)
         let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
@@ -56,28 +62,33 @@ struct MenuQuotaLabel: View {
             .font: font,
             .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color
         ]
-        let width = max(36, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 4)
+        let showText = style != "bars"
+        let showBars = style != "numbers"
+        let textWidth: CGFloat = showText ? max(36, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 2) : 0
+        let barsX: CGFloat = showText ? textWidth + 5 : 0
+        let width = showBars ? barsX + 31 : textWidth
         let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
         let alignment = NSMutableParagraphStyle(); alignment.alignment = .right
         var top = topAttributes; top[.paragraphStyle] = alignment
-        (countdown as NSString).draw(in: NSRect(x: 0, y: 11, width: width - 2, height: 11), withAttributes: top)
-        let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
-        if style != "bars" || remaining == nil {
-            (value as NSString).draw(in: NSRect(x: 0, y: style == "both" ? 1 : 0, width: width - 2, height: 12), withAttributes: [
+        if showText {
+            (countdown as NSString).draw(in: NSRect(x: 0, y: 11, width: textWidth, height: 11), withAttributes: top)
+            let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
+            (value as NSString).draw(in: NSRect(x: 0, y: 0, width: textWidth, height: 12), withAttributes: [
                 .font: font,
                 .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color,
                 .paragraphStyle: alignment
             ])
         }
-        if style != "numbers", let remaining {
-            let height: CGFloat = style == "bars" ? 5 : 1.5
-            let rect = NSRect(x: 2, y: style == "bars" ? 3 : 0, width: width - 4, height: height)
-            color.withAlphaComponent(0.22).setFill()
-            NSBezierPath(roundedRect: rect, xRadius: height / 2, yRadius: height / 2).fill()
-            color.setFill()
-            let filledWidth = rect.width * max(0, min(100, remaining)) / 100
-            NSBezierPath(roundedRect: NSRect(x: rect.maxX - filledWidth, y: rect.minY, width: filledWidth, height: height), xRadius: height / 2, yRadius: height / 2).fill()
+        if showBars {
+            for (y, percentage) in [(CGFloat(12), timeRemaining), (CGFloat(2), remaining)] {
+                let filled = percentage.map { Int(ceil(max(0, min(100, $0)) / 100 * 8)) } ?? 0
+                for index in 0..<8 {
+                    (index < filled ? color : color.withAlphaComponent(0.18)).setFill()
+                    let rect = NSRect(x: barsX + CGFloat(index) * 4, y: y, width: 3, height: 8)
+                    NSBezierPath(roundedRect: rect, xRadius: 1, yRadius: 1).fill()
+                }
+            }
         }
         image.unlockFocus()
         image.isTemplate = false
@@ -92,7 +103,7 @@ struct MenuQuotaPreview: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(L10n.text("样式预览")).font(.caption).foregroundStyle(.secondary)
-            Image(nsImage: StatusQuotaDrawing.image(style: style, short: 68, weekly: 92))
+            Image(nsImage: StatusQuotaDrawing.image(style: style, short: 68, weekly: 92, timeRemaining: 86))
                 .padding(.horizontal, 10).padding(.vertical, 5)
                 .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 7))
             Text(L10n.text("示例数据")).font(.caption2).foregroundStyle(.secondary)
