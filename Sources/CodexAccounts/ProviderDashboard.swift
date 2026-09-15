@@ -77,25 +77,19 @@ struct ProviderDashboard: View {
                         Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
                             .tag(id)
                     }
-                }.labelsHidden().frame(width: 200)
+                }.labelsHidden().fixedSize()
                 Spacer()
+                Button { Task { await usage.refresh(provider: products.selected, force: true) } } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .help(L10n.isEnglish ? "Refresh usage" : "刷新额度")
+                .disabled(usage.isLoading(products.selected))
                 Button(action: showProducts) {
                     Label(L10n.isEnglish ? "Products" : "产品", systemImage: "slider.horizontal.3")
                 }
             }.padding(16)
             Divider()
             VStack(spacing: 0) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(ProductPreferences.catalog.first { $0.id == products.selected }?.name ?? products.selected).font(.title2.weight(.semibold))
-                        Text(L10n.isEnglish ? "Usage, resets and spending" : "额度、重置时间与消耗").font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button { Task { await usage.refresh(provider: products.selected, force: true) } } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }.disabled(usage.isLoading(products.selected))
-                }.padding(24)
-                Divider()
                 ScrollView {
                     VStack(spacing: 16) {
                         if let rows = usage.rows[products.selected], rows.count > 1 {
