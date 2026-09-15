@@ -122,14 +122,13 @@ struct MenuContent: View {
                             Button {
                                 if profile.snapshot?.identity != store.activeIdentity { store.confirmSwitch(profile) }
                             } label: {
-                                Label(profile.name, systemImage: profile.snapshot?.identity == store.activeIdentity ? "checkmark.circle.fill" : "person.crop.circle")
+                                Label(profile.name + (profile.snapshot?.identity == store.activeIdentity ? (L10n.isEnglish ? " · Current" : " · 当前使用") : ""), systemImage: profile.snapshot?.identity == store.activeIdentity ? "checkmark.circle.fill" : "arrow.triangle.swap")
                             }.disabled(store.busy)
                         }
                         Divider()
                         Button(L10n.isEnglish ? "Manage accounts…" : "管理账号…") { open("accounts") }
                     } label: {
-                        Text(activeProfile?.name ?? (L10n.isEnglish ? "Accounts" : "账号"))
-                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 180, alignment: .trailing)
+                        accountControl(title: L10n.isEnglish ? "Switch account" : "切换账号", account: activeProfile?.name)
                     }.menuStyle(.borderlessButton)
                 } else {
                     Menu {
@@ -141,8 +140,7 @@ struct MenuContent: View {
                         Divider()
                         Button(L10n.isEnglish ? "Login & accounts…" : "登录与账号…") { open("products") }
                     } label: {
-                        Text(usage.selectedUsage(provider: products.selected)?.account ?? (L10n.isEnglish ? "Accounts" : "账号"))
-                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 180, alignment: .trailing)
+                        accountControl(title: L10n.isEnglish ? "View account" : "查看账号", account: usage.selectedUsage(provider: products.selected)?.account)
                     }.menuStyle(.borderlessButton)
                 }
             }.font(.system(size: 11)).padding(.horizontal, 12).padding(.vertical, 9)
@@ -177,6 +175,20 @@ struct MenuContent: View {
         .modifier(MenuGlassSurface())
         .tint(tint)
         .task(id: products.selected) { refresh(force: false) }
+    }
+    private func accountControl(title: String, account: String?) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "arrow.triangle.swap").font(.system(size: 12, weight: .medium))
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(title).font(.system(size: 10, weight: .semibold))
+                if let account {
+                    Text(account).font(.system(size: 10)).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+            }
+        }.frame(maxWidth: 180, alignment: .trailing)
+            .help(title)
+            .accessibilityLabel(title + (account.map { ": " + $0 } ?? ""))
     }
     private var emptyState: some View {
         VStack(spacing: 12) {
