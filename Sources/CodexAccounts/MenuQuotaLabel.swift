@@ -27,8 +27,8 @@ struct MenuQuotaLabel: View {
         let divisor = days ? 86400.0 : 3600.0
         let total = Double(minutes) * 60 / divisor
         let left = min(total, max(0, reset - now.timeIntervalSince1970) / divisor)
-        let unit = L10n.isEnglish ? (days ? "days" : "hours") : (days ? "天" : "小时")
-        return String(format: "%.1f/%.0f %@", locale: Locale(identifier: "en_US_POSIX"), left, total, unit)
+        let unit = L10n.isEnglish ? (days ? "d" : "h") : (days ? "天" : "小时")
+        return String(format: "%.1f/%.0f%@", locale: Locale(identifier: "en_US_POSIX"), left, total, unit)
     }
     private func valid(_ window: QuotaWindow?, now: Date) -> QuotaWindow? {
         guard let window else { return nil }
@@ -46,37 +46,38 @@ struct MenuQuotaLabel: View {
 /// Draws at the backing scale chosen by AppKit, retaining crisp two-row text on Retina screens.
 @MainActor enum StatusQuotaDrawing {
     private static var cache: [String: NSImage] = [:]
-    static func image(style: String, short: Double?, weekly: Double?, countdown: String = "4.3/5 hours") -> NSImage {
+    static func image(style: String, short: Double?, weekly: Double?, countdown: String = "4.3/5h") -> NSImage {
         let remaining = short ?? weekly
         let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
         let color = NSColor(srgbRed: 0.04, green: 0.36, blue: 0.25, alpha: 1)
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 7.5, weight: .semibold)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
         let topAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color
         ]
-        let width = max(46, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 4)
-        let image = NSImage(size: NSSize(width: width, height: 18))
+        let width = max(36, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 4)
+        let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
-        let center = NSMutableParagraphStyle(); center.alignment = .center
-        var top = topAttributes; top[.paragraphStyle] = center
-        (countdown as NSString).draw(in: NSRect(x: 0, y: 9, width: width, height: 9), withAttributes: top)
+        let alignment = NSMutableParagraphStyle(); alignment.alignment = .right
+        var top = topAttributes; top[.paragraphStyle] = alignment
+        (countdown as NSString).draw(in: NSRect(x: 0, y: 11, width: width - 2, height: 11), withAttributes: top)
         let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
         if style != "bars" || remaining == nil {
-            (value as NSString).draw(in: NSRect(x: 0, y: style == "both" ? 1 : 0, width: width, height: 9), withAttributes: [
+            (value as NSString).draw(in: NSRect(x: 0, y: style == "both" ? 1 : 0, width: width - 2, height: 12), withAttributes: [
                 .font: font,
                 .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color,
-                .paragraphStyle: center
+                .paragraphStyle: alignment
             ])
         }
         if style != "numbers", let remaining {
-            let height: CGFloat = style == "bars" ? 4 : 1
-            let rect = NSRect(x: 4, y: style == "bars" ? 2 : 0, width: width - 8, height: height)
+            let height: CGFloat = style == "bars" ? 5 : 1.5
+            let rect = NSRect(x: 2, y: style == "bars" ? 3 : 0, width: width - 4, height: height)
             color.withAlphaComponent(0.22).setFill()
             NSBezierPath(roundedRect: rect, xRadius: height / 2, yRadius: height / 2).fill()
             color.setFill()
-            NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: rect.width * max(0, min(100, remaining)) / 100, height: height), xRadius: height / 2, yRadius: height / 2).fill()
+            let filledWidth = rect.width * max(0, min(100, remaining)) / 100
+            NSBezierPath(roundedRect: NSRect(x: rect.maxX - filledWidth, y: rect.minY, width: filledWidth, height: height), xRadius: height / 2, yRadius: height / 2).fill()
         }
         image.unlockFocus()
         image.isTemplate = false
