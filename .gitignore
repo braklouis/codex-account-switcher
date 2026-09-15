@@ -19,3 +19,10 @@ auth.json
 *.dmg
 security-reports/
 .swiftpm/
+
+# Never stage provider login state or browser exports
+.codexbar/
+.grok/
+.kimi-code/
+cookies.txt
+*.har

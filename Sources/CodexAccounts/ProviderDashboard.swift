@@ -281,6 +281,7 @@ private struct ProviderCLI {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: path)
         process.arguments = arguments
+        process.standardInput = FileHandle.nullDevice
         let output = Pipe()
         process.standardOutput = output
         process.standardError = FileHandle.nullDevice
