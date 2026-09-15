@@ -30,7 +30,10 @@ struct AccountsView: View {
                             Label(L10n.text("先保存你的第一个账号"), systemImage: "person.crop.circle.badge.plus")
                         } description: { Text(L10n.text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。")) }
                     }
-                    ForEach(store.orderedProfiles) { profile in accountCard(profile) }
+                    ForEach(store.orderedProfiles) { profile in
+                        accountCard(profile)
+                        Divider()
+                    }
                 }.padding(.horizontal, 16).padding(.bottom, 16)
             }
             Divider()
@@ -74,6 +77,6 @@ struct AccountsView: View {
         AccountUsageCard(profile: profile, store: store,
             onSwitch: { store.confirmSwitch(profile) },
             onRename: { name = profile.name; renameTarget = profile },
-            onRemove: { removeTarget = profile })
+            onRemove: { removeTarget = profile }, compact: true, flat: true)
     }
 }
