@@ -56,7 +56,7 @@ import Darwin
 struct ProviderDashboard: View {
     @ObservedObject private var products = ProductPreferences.shared
     @ObservedObject private var usage = ProviderUsageStore.shared
-    @Environment(\.openWindow) private var openWindow
+    var showProducts: () -> Void = {}
     @State private var costs: [String: LocalCost] = [:]
     @State private var costLoading = false
     @State private var costError: String?
@@ -78,7 +78,7 @@ struct ProviderDashboard: View {
                     }.buttonStyle(.plain)
                 }
                 Spacer()
-                Button { openWindow(id: "products") } label: {
+                Button { showProducts() } label: {
                     Label(L10n.isEnglish ? "Choose products" : "选择产品", systemImage: "slider.horizontal.3")
                 }.buttonStyle(.borderless)
             }.padding(18).frame(width: 190).background(Color.primary.opacity(0.025))
@@ -108,7 +108,7 @@ struct ProviderDashboard: View {
                         else if usage.loading { ProgressView().padding(40) }
                         else { ContentUnavailableView(L10n.isEnglish ? "Connect your account" : "连接你的账号", systemImage: "person.crop.circle.badge.plus") }
                         if let error = usage.errors[products.selected] { Text(error).font(.caption).foregroundStyle(.orange) }
-                        Button(L10n.isEnglish ? "Login & product settings" : "登录与产品设置") { openWindow(id: "products") }
+                        Button(L10n.isEnglish ? "Login & product settings" : "登录与产品设置") { showProducts() }
                             .buttonStyle(.borderless)
                         if ["codex", "claude", "cursor"].contains(products.selected) {
                             Divider()

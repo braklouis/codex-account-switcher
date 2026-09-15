@@ -155,7 +155,7 @@ struct ProductSettingsView: View {
                 }.padding(22)
             }
         }
-        .frame(width: 590, height: 690)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(Color(red: 0.10, green: 0.52, blue: 0.41))
     }

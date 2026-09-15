@@ -4,7 +4,6 @@ import SwitcherCore
 struct AccountsView: View {
     @ObservedObject private var language = AppPreferences.shared
     @ObservedObject var store: AccountStore
-    @Environment(\.openWindow) private var openWindow
     @State private var removeTarget: Profile?
     @State private var renameTarget: Profile?
     @State private var name = ""
@@ -12,24 +11,18 @@ struct AccountsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text("TOKENDECK").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(accent)
-                    Text(L10n.text("你的账号，一目了然")).font(.system(size: 28, weight: .semibold))
-                    Text(L10n.text("查看可用额度，为下一项任务选好账号。"))
-                        .font(.system(size: 13)).foregroundStyle(.secondary)
+            HStack(spacing: 14) {
+                Text(L10n.isEnglish ? "Accounts" : "账号")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                HStack(spacing: 8) {
+                    Circle().fill(store.activeEmail == nil ? .gray : accent).frame(width: 7, height: 7)
+                    Text(L10n.text("当前登录")).foregroundStyle(.secondary)
+                    Text(store.activeEmail ?? L10n.text("尚未登录 / 登录不可读"))
+                        .lineLimit(1).textSelection(.enabled)
                 }
-                Spacer()
-                AppBrandIcon().frame(width: 68, height: 68)
-            }.padding(28)
-            HStack(spacing: 10) {
-                Circle().fill(store.activeEmail == nil ? .gray : accent).frame(width: 7, height: 7)
-                Text(L10n.text("当前登录")).foregroundStyle(.secondary)
-                Text(store.activeEmail ?? L10n.text("尚未登录 / 登录不可读")).lineLimit(1).textSelection(.enabled)
-                Spacer()
-                Button(L10n.isEnglish ? "AI usage & spend" : "AI 额度与消耗") { openWindow(id: "providers") }
                 if store.demo { Text(L10n.text("演示")).foregroundStyle(.orange) }
-            }.font(.system(size: 12)).padding(.horizontal, 28).padding(.bottom, 20)
+            }.font(.system(size: 12)).padding(.horizontal, 20).padding(.vertical, 16)
             Divider()
             HStack {
                 Text(L10n.text("已保存账号")).font(.headline)
@@ -37,7 +30,7 @@ struct AccountsView: View {
                 Spacer()
                 Button { store.refreshQuotas() } label: { Label(L10n.text("刷新额度"), systemImage: "arrow.clockwise") }
                     .disabled(store.busy || store.profiles.isEmpty)
-            }.padding(.horizontal, 28).padding(.vertical, 18)
+            }.padding(.horizontal, 20).padding(.vertical, 16)
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if !store.loaded {
@@ -51,7 +44,7 @@ struct AccountsView: View {
                         } description: { Text(L10n.text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。")) }
                     }
                     ForEach(store.orderedProfiles) { profile in accountCard(profile) }
-                }.padding(.horizontal, 28).padding(.bottom, 20)
+                }.padding(.horizontal, 20).padding(.bottom, 16)
             }
             Divider()
             VStack(alignment: .leading, spacing: 12) {
@@ -59,7 +52,6 @@ struct AccountsView: View {
                     Button { store.addAccount() } label: { Label(L10n.text("登录新账号"), systemImage: "plus") }
                         .buttonStyle(.borderedProminent).tint(accent)
                     Button(L10n.text("保存当前账号")) { store.importCurrent() }
-                    Button(L10n.text("设置…")) { openWindow(id: "preferences") }
                     Spacer()
                     if store.busy { ProgressView().controlSize(.small) }
                 }.disabled(store.busy || !store.loaded)
@@ -70,9 +62,9 @@ struct AccountsView: View {
                         Button(L10n.text("取消")) { store.cancelLogin() }.buttonStyle(.link)
                     }
                 }.font(.system(size: 11)).foregroundStyle(.secondary)
-            }.padding(24)
+            }.padding(20)
         }
-        .frame(minWidth: 640, minHeight: 600)
+        .frame(minWidth: 520, minHeight: 460)
         .background(Color(nsColor: .windowBackgroundColor))
         .onReceive(NotificationCenter.default.publisher(for: .chooseAccount)) { note in
             if let id = note.object as? UUID, let profile = store.profiles.first(where: { $0.id == id }) { store.confirmSwitch(profile) }

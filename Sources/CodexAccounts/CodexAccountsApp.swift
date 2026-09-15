@@ -6,23 +6,22 @@ import SwitcherCore
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var store = AccountStore(demo: CommandLine.arguments.contains("--demo") || CommandLine.arguments.contains("--self-check"))
     var body: some Scene {
-        Window("TokenDeck", id: "accounts") {
-            AccountsView(store: store)
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in store.refreshActive() }
-        }
-        .defaultSize(width: 700, height: 780)
-        .windowResizability(.contentMinSize)
-        Window(L10n.isEnglish ? "Choose products" : "选择产品", id: "products") { ProductSettingsView() }
-            .defaultSize(width: 600, height: 650)
-        Window("TokenDeck · AI", id: "providers") { ProviderDashboard() }
-            .defaultSize(width: 760, height: 640)
-        Window(L10n.text("设置"), id: "preferences") { PreferencesView() }.windowResizability(.contentSize)
+        workspaceWindow
         MenuBarExtra {
             MenuContent(store: store)
         } label: {
             MenuQuotaLabel(store: store)
         }.menuBarExtraStyle(.window)
     }
+    private var workspaceWindow: some Scene {
+        Window("TokenDeck", id: "workspace") {
+            WorkspaceView(store: store)
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in store.refreshActive() }
+        }
+        .defaultSize(width: 760, height: 740)
+        .windowResizability(.contentMinSize)
+    }
+
 }
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -34,8 +33,17 @@ import SwitcherCore
         guard let id = Bundle.main.bundleIdentifier else { return }
         let peers = NSRunningApplication.runningApplications(withBundleIdentifier: id)
             .filter { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
-        if let peer = peers.first { peer.activate(options: [.activateAllWindows]); NSApp.terminate(nil); return }
-        if !CommandLine.arguments.contains("--demo") { AppPreferences.shared.start() }
+        if let peer = peers.first { peer.activate(options: []); NSApp.terminate(nil); return }
+        if !CommandLine.arguments.contains("--demo") {
+            AppPreferences.shared.start()
+            // Launch quietly; explicit menu actions are the only window-opening path.
+            DispatchQueue.main.async {
+                for window in NSApp.windows where window.title == "TokenDeck" {
+                    window.isRestorable = false
+                    window.orderOut(nil)
+                }
+            }
+        }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     private func selfCheck() async {
@@ -210,7 +218,8 @@ struct MenuContent: View {
         }
     }
     private func open(_ id: String) {
-        openWindow(id: id)
+        WorkspaceNavigation.shared.page = WorkspacePage(rawValue: id) ?? .usage
+        openWindow(id: "workspace")
         NSApp.activate(ignoringOtherApps: true)
     }
 }
