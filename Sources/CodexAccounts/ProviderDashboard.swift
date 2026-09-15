@@ -65,6 +65,8 @@ struct ProviderDashboard: View {
     @ObservedObject private var products = ProductPreferences.shared
     @ObservedObject private var usage = ProviderUsageStore.shared
     var showProducts: () -> Void = {}
+    var codexAccounts: AnyView?
+    @State private var showsCost = false
     @State private var costs: [String: LocalCost] = [:]
     @State private var costLoading = false
     @State private var costError: String?
@@ -79,17 +81,19 @@ struct ProviderDashboard: View {
                     }
                 }.labelsHidden().fixedSize()
                 Spacer()
+                if products.selected != "codex" || codexAccounts == nil {
                 Button { Task { await usage.refresh(provider: products.selected, force: true) } } label: {
                     Image(systemName: "arrow.clockwise")
                 }
                 .help(L10n.isEnglish ? "Refresh usage" : "刷新额度")
                 .disabled(usage.isLoading(products.selected))
-                Button(action: showProducts) {
-                    Label(L10n.isEnglish ? "Products" : "产品", systemImage: "slider.horizontal.3")
                 }
             }.padding(16)
             Divider()
             VStack(spacing: 0) {
+                if products.selected == "codex", let codexAccounts {
+                    codexAccounts
+                } else {
                 ScrollView {
                     VStack(spacing: 16) {
                         if let rows = usage.rows[products.selected], rows.count > 1 {
@@ -105,19 +109,26 @@ struct ProviderDashboard: View {
                         if let error = usage.errors[products.selected] { Text(error).font(.caption).foregroundStyle(.orange) }
                         Button(L10n.isEnglish ? "Login & product settings" : "登录与产品设置") { showProducts() }
                             .buttonStyle(.borderless)
-                        if ["codex", "claude", "cursor"].contains(products.selected) {
-                            Divider()
-                            Button(L10n.isEnglish ? "Load local token consumption" : "读取本地 Token 消耗") { Task { await loadCost() } }.disabled(costLoading)
+                    }.padding(20)
+                }
+                }
+                if ["codex", "claude", "cursor"].contains(products.selected) {
+                    Divider()
+                    DisclosureGroup(L10n.isEnglish ? "Local consumption" : "本地消耗", isExpanded: $showsCost) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Button(L10n.isEnglish ? "Load consumption" : "读取消耗") { Task { await loadCost() } }.disabled(costLoading)
                             if costLoading { ProgressView().controlSize(.small) }
                             if let cost = costs[products.selected] { LocalCostCard(cost: cost) }
                             if let costError { Text(costError).font(.caption).foregroundStyle(.secondary) }
-                        }
-                    }.padding(20)
+                        }.padding(.top, 8)
+                    }.padding(16)
                 }
             }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .windowBackgroundColor))
-            .task(id: products.selected) { await usage.refresh(provider: products.selected) }
+            .task(id: products.selected) {
+                if products.selected != "codex" || codexAccounts == nil { await usage.refresh(provider: products.selected) }
+            }
     }
     private func loadCost() async {
         guard !costLoading else { return }
@@ -191,7 +202,7 @@ private struct UsageWindowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack { Text(window.label).font(.system(size: 12, weight: .medium)); Spacer(); Text("\(Int(window.remaining.rounded()))%").font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit() }
-            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : .accentColor)
+            ProgressView(value: max(0, min(100, window.remaining)), total: 100).tint(window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : Color(nsColor: .systemGreen))
             if let reset = window.resetAt {
                 HStack { Image(systemName: "clock"); Text(reset, format: .dateTime.hour().minute()); Spacer(); Text(reset, style: .date) }
                     .font(.caption2).foregroundStyle(.secondary)

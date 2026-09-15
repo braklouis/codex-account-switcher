@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 cd "${0:A:h:h}"
-swift build -c release --disable-sandbox
+swift build -c release --disable-sandbox --build-system native --sdk "${SDKROOT:-$(xcrun --show-sdk-path)}"
 APP="$PWD/dist/TokenDeck.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/CodexAccounts "$APP/Contents/MacOS/CodexAccounts"

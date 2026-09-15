@@ -38,7 +38,7 @@ import SwitcherCore
             AppPreferences.shared.start()
             // Launch quietly; explicit menu actions are the only window-opening path.
             DispatchQueue.main.async {
-                for window in NSApp.windows where window.title == "TokenDeck" {
+                for window in NSApp.windows where window.identifier?.rawValue == "workspace" || window.title == "TokenDeck" {
                     window.isRestorable = false
                     window.orderOut(nil)
                 }
@@ -83,7 +83,7 @@ struct MenuContent: View {
     @ObservedObject private var usage = ProviderUsageStore.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
-    private let tint = Color.accentColor
+    private let tint = Color(nsColor: .systemGreen)
     private var isCodex: Bool { products.selected == "codex" }
     private var activeProfile: Profile? {
         store.orderedProfiles.first { $0.snapshot?.identity == store.activeIdentity } ?? store.orderedProfiles.first
@@ -218,6 +218,7 @@ struct MenuContent: View {
         }
     }
     private func open(_ id: String) {
+        if id == "accounts" { products.selected = "codex" }
         WorkspaceNavigation.shared.page = WorkspacePage(rawValue: id) ?? .usage
         openWindow(id: "workspace")
         NSApp.activate(ignoringOtherApps: true)

@@ -1,11 +1,17 @@
 import SwiftUI
 
 enum WorkspacePage: String, CaseIterable {
-    case usage = "providers", accounts, products, preferences
+    case usage = "providers", products, preferences
+    var symbol: String {
+        switch self {
+        case .usage: return "chart.bar.fill"
+        case .products: return "square.grid.2x2.fill"
+        case .preferences: return "gearshape.fill"
+        }
+    }
     var title: String {
         switch self {
-        case .usage: return L10n.isEnglish ? "Usage" : "额度"
-        case .accounts: return L10n.isEnglish ? "Accounts" : "账号"
+        case .usage: return L10n.isEnglish ? "Overview" : "概览"
         case .products: return L10n.isEnglish ? "Products" : "产品"
         case .preferences: return L10n.isEnglish ? "Settings" : "设置"
         }
@@ -23,17 +29,41 @@ struct WorkspaceView: View {
     @ObservedObject private var language = AppPreferences.shared
 
     var body: some View {
-        TabView(selection: $navigation.page) {
-            ProviderDashboard(showProducts: { navigation.page = .products })
-                .tabItem { Label(WorkspacePage.usage.title, systemImage: "chart.bar") }.tag(WorkspacePage.usage)
-            AccountsView(store: store)
-                .tabItem { Label(WorkspacePage.accounts.title, systemImage: "person.crop.circle") }.tag(WorkspacePage.accounts)
-            ProductSettingsView()
-                .tabItem { Label(WorkspacePage.products.title, systemImage: "square.grid.2x2") }.tag(WorkspacePage.products)
-            PreferencesView()
-                .tabItem { Label(WorkspacePage.preferences.title, systemImage: "gearshape") }.tag(WorkspacePage.preferences)
+        NavigationSplitView {
+            List {
+                ForEach(WorkspacePage.allCases, id: \.self) { page in
+                    Button { navigation.page = page } label: {
+                        Label { Text(page.title) } icon: {
+                            Image(systemName: page.symbol).foregroundStyle(navigation.page == page ? Color.white : Color(nsColor: .systemGreen))
+                        }
+                            .font(.body.weight(navigation.page == page ? .semibold : .regular))
+                            .foregroundStyle(navigation.page == page ? Color.white : Color.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(RoundedRectangle(cornerRadius: 8).fill(navigation.page == page ? Color(nsColor: .systemGreen) : Color.clear).padding(.horizontal, 6))
+                    .accessibilityAddTraits(navigation.page == page ? .isSelected : [])
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationTitle("TokenDeck")
+            .navigationSplitViewColumnWidth(min: 160, ideal: 180, max: 220)
+        } detail: {
+            Group {
+                switch navigation.page {
+                case .usage:
+                    ProviderDashboard(showProducts: { navigation.page = .products }, codexAccounts: AnyView(AccountsView(store: store)))
+                case .products: ProductSettingsView()
+                case .preferences: PreferencesView()
+                }
+            }
+            .navigationTitle(navigation.page.title)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: .windowBackgroundColor))
         }
-        .padding(12)
-        .frame(minWidth: 680, minHeight: 600)
+        .tint(Color(nsColor: .systemGreen))
+        .frame(minWidth: 740, minHeight: 600)
     }
 }

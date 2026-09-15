@@ -7,7 +7,7 @@ struct AccountsView: View {
     @State private var removeTarget: Profile?
     @State private var renameTarget: Profile?
     @State private var name = ""
-    private let accent = Color(red: 0.12, green: 0.49, blue: 0.40)
+    private let accent = Color(nsColor: .systemGreen)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
