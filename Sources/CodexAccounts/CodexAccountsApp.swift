@@ -161,7 +161,7 @@ struct MenuContent: View {
                     } else {
                         emptyState
                     }
-                }.padding(.horizontal, 12).padding(.bottom, 9)
+                }.background(AutoHidingScrollbars()).padding(.horizontal, 12).padding(.bottom, 9)
             }.frame(height: 260)
             Divider()
             HStack {
