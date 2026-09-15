@@ -51,28 +51,28 @@ struct MenuQuotaLabel: View {
         let key = "\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
         let color = NSColor(srgbRed: 0.04, green: 0.36, blue: 0.25, alpha: 1)
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
+        let font = NSFont.monospacedDigitSystemFont(ofSize: 7.5, weight: .semibold)
         let topAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color
         ]
-        let width = max(58, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 4)
-        let image = NSImage(size: NSSize(width: width, height: 22))
+        let width = max(46, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 4)
+        let image = NSImage(size: NSSize(width: width, height: 18))
         image.lockFocus()
         let center = NSMutableParagraphStyle(); center.alignment = .center
         var top = topAttributes; top[.paragraphStyle] = center
-        (countdown as NSString).draw(in: NSRect(x: 0, y: 11, width: width, height: 11), withAttributes: top)
+        (countdown as NSString).draw(in: NSRect(x: 0, y: 9, width: width, height: 9), withAttributes: top)
         let value = remaining.map { "\(Int(max(0, min(100, $0))))%" } ?? "—"
         if style != "bars" || remaining == nil {
-            (value as NSString).draw(in: NSRect(x: 0, y: style == "both" ? 1 : 0, width: width, height: 12), withAttributes: [
+            (value as NSString).draw(in: NSRect(x: 0, y: style == "both" ? 1 : 0, width: width, height: 9), withAttributes: [
                 .font: font,
                 .foregroundColor: remaining == nil ? NSColor.secondaryLabelColor : color,
                 .paragraphStyle: center
             ])
         }
         if style != "numbers", let remaining {
-            let height: CGFloat = style == "bars" ? 5 : 1.5
-            let rect = NSRect(x: 4, y: style == "bars" ? 3 : 0, width: width - 8, height: height)
+            let height: CGFloat = style == "bars" ? 4 : 1
+            let rect = NSRect(x: 4, y: style == "bars" ? 2 : 0, width: width - 8, height: height)
             color.withAlphaComponent(0.22).setFill()
             NSBezierPath(roundedRect: rect, xRadius: height / 2, yRadius: height / 2).fill()
             color.setFill()
