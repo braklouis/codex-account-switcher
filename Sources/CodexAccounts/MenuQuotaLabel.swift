@@ -81,7 +81,7 @@ struct MenuQuotaLabel: View {
             ])
         }
         if showBars {
-            for (y, percentage) in [(CGFloat(12), timeRemaining), (CGFloat(2), remaining)] {
+            for (y, percentage) in [(CGFloat(7), remaining)] {
                 let filled = percentage.map { Int(ceil(max(0, min(100, $0)) / 100 * 8)) } ?? 0
                 for index in 0..<8 {
                     (index < filled ? color : color.withAlphaComponent(0.18)).setFill()
