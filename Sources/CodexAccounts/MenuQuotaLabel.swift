@@ -19,7 +19,7 @@ struct MenuQuotaLabel: View {
             short: short?.remaining, weekly: week?.remaining,
             countdown: countdown(selected, now: now), timeRemaining: timeRemaining(selected, now: now)))
             .accessibilityLabel(L10n.isEnglish ? "Remaining quota \(value(selected)); \(countdown(selected, now: now)) until reset" : "剩余额度 \(value(selected))；距重置 \(countdown(selected, now: now))")
-            .help(L10n.isEnglish ? "Time remaining / window duration. Short-term \(value(short)) · Weekly \(value(week))" : "距重置剩余时间 / 窗口总时长。短期 \(value(short)) · 每周 \(value(week))")
+            .help(L10n.isEnglish ? "Time until reset. Left bar: time remaining; right bar: quota remaining. Short-term \(value(short)) · Weekly \(value(week))" : "距重置剩余时间。左条：剩余时间；右条：剩余额度。短期 \(value(short)) · 每周 \(value(week))")
     }
     private func timeRemaining(_ window: QuotaWindow?, now: Date) -> Double? {
         guard let window, let minutes = window.windowDurationMins, minutes > 0,
@@ -33,7 +33,7 @@ struct MenuQuotaLabel: View {
         let total = Double(minutes) * 60 / divisor
         let left = min(total, max(0, reset - now.timeIntervalSince1970) / divisor)
         let unit = L10n.isEnglish ? (days ? "d" : "h") : (days ? "天" : "小时")
-        return String(format: "%.1f/%.0f%@", locale: Locale(identifier: "en_US_POSIX"), left, total, unit)
+        return String(format: "%.1f%@", locale: Locale(identifier: "en_US_POSIX"), left, unit)
     }
     private func valid(_ window: QuotaWindow?, now: Date) -> QuotaWindow? {
         guard let window else { return nil }
@@ -51,9 +51,9 @@ struct MenuQuotaLabel: View {
 /// Draws at the backing scale chosen by AppKit, retaining crisp two-row text on Retina screens.
 @MainActor enum StatusQuotaDrawing {
     private static var cache: [String: NSImage] = [:]
-    static func image(style: String, short: Double?, weekly: Double?, countdown: String = "4.3/5h", timeRemaining: Double? = nil) -> NSImage {
+    static func image(style: String, short: Double?, weekly: Double?, countdown: String = "4.3h", timeRemaining: Double? = nil) -> NSImage {
         let remaining = short ?? weekly
-        let timeSegments = timeRemaining.map { Int(ceil(max(0, min(100, $0)) / 100 * 8)) }
+        let timeSegments = timeRemaining
         let key = "\(String(describing: timeSegments))|\(style)|\(String(describing: short))|\(String(describing: weekly))|\(countdown)|\(NSApp.effectiveAppearance.name.rawValue)"
         if let cached = cache[key] { return cached }
         let color = NSColor(srgbRed: 0.04, green: 0.36, blue: 0.25, alpha: 1)
@@ -66,7 +66,7 @@ struct MenuQuotaLabel: View {
         let showBars = style != "numbers"
         let textWidth: CGFloat = showText ? max(36, ceil((countdown as NSString).size(withAttributes: topAttributes).width) + 2) : 0
         let barsX: CGFloat = showText ? textWidth + 5 : 0
-        let width = showBars ? barsX + 5 : textWidth
+        let width = showBars ? barsX + 12 : textWidth
         let image = NSImage(size: NSSize(width: width, height: 22))
         image.lockFocus()
         let alignment = NSMutableParagraphStyle(); alignment.alignment = .right
@@ -81,17 +81,19 @@ struct MenuQuotaLabel: View {
             ])
         }
         if showBars {
-            let rect = NSRect(x: barsX, y: 2, width: 5, height: 18)
-            let outline = NSBezierPath(roundedRect: rect, xRadius: 2, yRadius: 2)
-            color.withAlphaComponent(0.18).setFill()
-            outline.fill()
-            if let remaining {
-                NSGraphicsContext.saveGraphicsState()
-                outline.addClip()
-                color.setFill()
-                NSBezierPath(rect: NSRect(x: rect.minX, y: rect.minY, width: rect.width,
-                    height: rect.height * max(0, min(100, remaining)) / 100)).fill()
-                NSGraphicsContext.restoreGraphicsState()
+            for (index, percentage) in [timeRemaining, remaining].enumerated() {
+                let rect = NSRect(x: barsX + CGFloat(index) * 7, y: 2, width: 5, height: 18)
+                let outline = NSBezierPath(roundedRect: rect, xRadius: 2, yRadius: 2)
+                color.withAlphaComponent(0.18).setFill()
+                outline.fill()
+                if let percentage {
+                    NSGraphicsContext.saveGraphicsState()
+                    outline.addClip()
+                    color.setFill()
+                    NSBezierPath(rect: NSRect(x: rect.minX, y: rect.minY, width: rect.width,
+                        height: rect.height * max(0, min(100, percentage)) / 100)).fill()
+                    NSGraphicsContext.restoreGraphicsState()
+                }
             }
         }
         image.unlockFocus()
