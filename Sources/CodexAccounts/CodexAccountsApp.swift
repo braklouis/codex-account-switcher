@@ -87,28 +87,28 @@ struct MenuContent: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 9) {
-                AppBrandIcon().frame(width: 28, height: 28)
-                Text("TokenDeck").font(.system(size: 15, weight: .semibold))
+                AppBrandIcon().frame(width: 23, height: 23)
+                Text("TokenDeck").font(.system(size: 13, weight: .semibold))
                 Spacer()
                 Button { open("products") } label: { Image(systemName: "slider.horizontal.3") }
                     .help(L10n.isEnglish ? "Choose products" : "选择产品")
                 Button { refresh(force: true) } label: {
                     Image(systemName: "arrow.clockwise")
                 }.disabled(isCodex ? store.busy : usage.loading)
-            }.buttonStyle(.borderless).padding(16)
+            }.buttonStyle(.borderless).padding(12)
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: 4) {
                     ForEach(products.enabled, id: \.self) { id in
                         Button { products.selected = id } label: {
                             Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
                                 .font(.system(size: 11, weight: products.selected == id ? .semibold : .medium))
-                                .padding(.horizontal, 11).padding(.vertical, 7)
+                                .padding(.horizontal, 9).padding(.vertical, 6)
                                 .foregroundStyle(products.selected == id ? tint : Color.secondary)
                                 .background(products.selected == id ? tint.opacity(0.12) : Color.primary.opacity(0.035), in: Capsule())
                         }.buttonStyle(.plain)
                     }
-                }.padding(.horizontal, 14)
-            }.padding(.bottom, 12)
+                }.padding(.horizontal, 10)
+            }.padding(.bottom, 9)
             Divider()
             HStack {
                 Text(productName).font(.system(size: 12, weight: .semibold))
@@ -126,7 +126,7 @@ struct MenuContent: View {
                         Button(L10n.isEnglish ? "Manage accounts…" : "管理账号…") { open("accounts") }
                     } label: {
                         Text(activeProfile?.name ?? (L10n.isEnglish ? "Accounts" : "账号"))
-                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 210, alignment: .trailing)
+                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 180, alignment: .trailing)
                     }.menuStyle(.borderlessButton)
                 } else {
                     Menu {
@@ -139,39 +139,39 @@ struct MenuContent: View {
                         Button(L10n.isEnglish ? "Login & accounts…" : "登录与账号…") { open("products") }
                     } label: {
                         Text(usage.selectedUsage(provider: products.selected)?.account ?? (L10n.isEnglish ? "Accounts" : "账号"))
-                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 210, alignment: .trailing)
+                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 180, alignment: .trailing)
                     }.menuStyle(.borderlessButton)
                 }
-            }.font(.system(size: 11)).padding(.horizontal, 16).padding(.vertical, 12)
+            }.font(.system(size: 11)).padding(.horizontal, 12).padding(.vertical, 9)
             ScrollView {
                 VStack(spacing: 10) {
                     if isCodex {
                         if let profile = activeProfile {
                             AccountUsageCard(profile: profile, store: store,
                                 onSwitch: { store.confirmSwitch(profile) },
-                                onRename: { open("accounts") }, onRemove: { open("accounts") }, showsManagement: false)
+                                onRename: { open("accounts") }, onRemove: { open("accounts") }, showsManagement: false, compact: true)
                         } else {
                             emptyState
                         }
                     } else if let row = usage.selectedUsage(provider: products.selected) {
-                        ProviderUsageCard(usage: row)
+                        ProviderUsageCard(usage: row, compact: true)
                     } else if usage.loading {
                         ProgressView().padding(40)
                     } else {
                         emptyState
                     }
-                }.padding(.horizontal, 12).padding(.bottom, 12)
-            }.frame(height: 340)
+                }.padding(.horizontal, 12).padding(.bottom, 9)
+            }.frame(height: 260)
             Divider()
             HStack {
                 Button(L10n.isEnglish ? "Usage & spend" : "额度与消耗") { open("providers") }
                 Spacer()
                 Button { open("preferences") } label: { Image(systemName: "gearshape") }
                 Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.disabled(store.busy)
-            }.font(.system(size: 12)).buttonStyle(.borderless).padding(16)
+            }.font(.system(size: 12)).buttonStyle(.borderless).padding(12)
         }
-        .frame(width: 370)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: 330)
+        .modifier(MenuGlassSurface())
         .tint(tint)
         .task(id: products.selected) { refresh(force: false) }
     }

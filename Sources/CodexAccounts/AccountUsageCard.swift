@@ -21,6 +21,7 @@ struct AccountUsageCard: View {
     let onRename: () -> Void
     let onRemove: () -> Void
     var showsManagement = true
+    var compact = false
     @State private var expanded = false
     private let green = Color(red: 0.10, green: 0.52, blue: 0.41)
     private var active: Bool { profile.snapshot?.identity == store.activeIdentity }
@@ -37,13 +38,13 @@ struct AccountUsageCard: View {
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: compact ? 12 : 18) {
+            HStack(spacing: compact ? 8 : 12) {
                 Image(systemName: active ? "person.crop.circle.badge.checkmark" : "person.crop.circle")
-                    .font(.system(size: 25, weight: .light)).foregroundStyle(green)
-                    .frame(width: 46, height: 46).background(green.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                    .font(.system(size: compact ? 18 : 25, weight: .light)).foregroundStyle(green)
+                    .frame(width: compact ? 30 : 46, height: compact ? 30 : 46).background(green.opacity(0.08), in: RoundedRectangle(cornerRadius: compact ? 10 : 14))
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.system(size: 15, weight: .semibold)).lineLimit(1).help(profile.name)
+                    Text(title).font(.system(size: compact ? 12 : 15, weight: .semibold)).lineLimit(1).help(profile.name)
                     Text(profile.snapshot?.email ?? L10n.text("需要重新登录")).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 4)
@@ -70,11 +71,11 @@ struct AccountUsageCard: View {
                 }
             }
             if let first = buckets.first {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: compact ? 10 : 16) {
                     bucketView(first.0, first.1)
                     if buckets.count > 1 {
                         DisclosureGroup(isExpanded: $expanded) {
-                            VStack(spacing: 16) {
+                            VStack(spacing: compact ? 10 : 16) {
                                 ForEach(Array(buckets.dropFirst()), id: \.0) { key, bucket in
                                     Divider()
                                     bucketView(key, bucket)
@@ -111,8 +112,8 @@ struct AccountUsageCard: View {
                     }
                 }
             }.padding(.top, 2)
-        }.padding(20)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 18))
+        }.padding(compact ? 12 : 20)
+            .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 18))
             .overlay(RoundedRectangle(cornerRadius: 18).stroke(active ? green.opacity(0.45) : Color.primary.opacity(0.08), lineWidth: 1))
             .shadow(color: .black.opacity(0.025), radius: 8, y: 3)
     }
@@ -130,8 +131,8 @@ struct AccountUsageCard: View {
                 Spacer()
                 Text(L10n.text("剩余额度")).font(.system(size: 10)).foregroundStyle(.secondary)
             }
-            if let window = bucket.primary { QuotaMeter(window: window, tint: green) }
-            if let window = bucket.secondary { QuotaMeter(window: window, tint: green) }
+            if let window = bucket.primary { QuotaMeter(window: window, tint: green, compact: compact) }
+            if let window = bucket.secondary { QuotaMeter(window: window, tint: green, compact: compact) }
             if bucket.primary == nil && bucket.secondary == nil {
                 Text(L10n.text("服务未提供时间窗口")).font(.caption).foregroundStyle(.secondary)
             }
@@ -143,13 +144,14 @@ struct QuotaMeter: View {
     @ObservedObject private var language = AppPreferences.shared
     let window: QuotaWindow
     let tint: Color
+    var compact = false
     private var color: Color { window.remaining <= 10 ? .red : window.remaining <= 25 ? .orange : tint }
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
                 Text(L10n.text(window.title)).font(.system(size: 12, weight: .medium))
                 Spacer()
-                Text("\(Int(window.remaining))").font(.system(size: 22, weight: .semibold, design: .rounded)).monospacedDigit()
+                Text("\(Int(window.remaining))").font(.system(size: compact ? 18 : 22, weight: .semibold, design: .rounded)).monospacedDigit()
                 Text("%").font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
             }
             GeometryReader { geometry in

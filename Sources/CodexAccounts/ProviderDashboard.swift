@@ -136,8 +136,9 @@ struct ProviderDashboard: View {
 
 struct ProviderUsageCard: View {
     let usage: ProviderUsage
+    var compact = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: compact ? 10 : 16) {
             HStack {
                 Image(systemName: "circle.grid.2x2.fill").foregroundStyle(.teal)
                 Text(usage.name).font(.headline)
@@ -184,8 +185,8 @@ struct ProviderUsageCard: View {
             }
             if let updated = usage.updatedAt { Text(updated, style: .relative).font(.caption2).foregroundStyle(.secondary) }
         }
-        .padding(20)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
+        .padding(compact ? 12 : 20)
+        .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.08)))
     }
 }
