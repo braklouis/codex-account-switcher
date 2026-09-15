@@ -2,10 +2,17 @@ import SwiftUI
 import SwitcherCore
 
 struct AppBrandIcon: View {
+    // The icon set supplies size-specific Retina representations, avoiding a
+    // full-size texture being sampled down to a tiny menu image on every redraw.
+    private static let image: NSImage? = {
+        let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns")
+            ?? Bundle.main.url(forResource: "AppIcon", withExtension: "png")
+        return url.flatMap { NSImage(contentsOf: $0) }
+    }()
+
     var body: some View {
-        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "png"),
-           let image = NSImage(contentsOf: url) {
-            Image(nsImage: image).resizable().scaledToFit()
+        if let image = Self.image {
+            Image(nsImage: image).resizable().interpolation(.high).scaledToFit()
         } else {
             Image(systemName: "arrow.triangle.swap").resizable().scaledToFit().padding(16)
                 .foregroundStyle(.white).background(Color.teal, in: RoundedRectangle(cornerRadius: 16))
