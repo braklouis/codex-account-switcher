@@ -83,6 +83,10 @@ struct MenuContent: View {
     @ObservedObject private var usage = ProviderUsageStore.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
+    @State private var previewAccountID: UUID?
+    private var previewProfile: Profile? {
+        store.orderedProfiles.first { $0.id == previewAccountID } ?? activeProfile
+    }
     private let tint = Color.primary
     private var isCodex: Bool { products.selected == "codex" }
     private var activeProfile: Profile? {
@@ -128,7 +132,7 @@ struct MenuContent: View {
                     Menu {
                         ForEach(store.orderedProfiles) { profile in
                             Button {
-                                if profile.snapshot?.identity != store.activeIdentity { store.confirmSwitch(profile) }
+                                previewAccountID = profile.id
                             } label: {
                                 Label(profile.name + (profile.snapshot?.identity == store.activeIdentity ? (L10n.isEnglish ? " · Current" : " · 当前使用") : ""), systemImage: profile.snapshot?.identity == store.activeIdentity ? "checkmark.circle.fill" : "arrow.triangle.swap")
                             }.disabled(store.busy)
@@ -136,7 +140,7 @@ struct MenuContent: View {
                         Divider()
                         Button(L10n.isEnglish ? "Manage accounts…" : "管理账号…") { open("accounts") }
                     } label: {
-                        accountControl(title: L10n.isEnglish ? "Switch account" : "切换账号", account: activeProfile?.name)
+                        accountControl(title: L10n.isEnglish ? "View account" : "查看账号", account: previewProfile?.name)
                     }.menuStyle(.borderlessButton)
                 } else {
                     Menu {
@@ -152,10 +156,29 @@ struct MenuContent: View {
                     }.menuStyle(.borderlessButton)
                 }
             }.font(.system(size: 11)).padding(.horizontal, 12).padding(.vertical, 9)
+            if isCodex && store.orderedProfiles.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(store.orderedProfiles) { profile in
+                            Button { previewAccountID = profile.id } label: {
+                                HStack(spacing: 4) {
+                                    if profile.snapshot?.identity == store.activeIdentity {
+                                        Image(systemName: "checkmark.circle.fill")
+                                    }
+                                    Text(profile.name).lineLimit(1)
+                                }
+                                .font(.system(size: 10, weight: .medium))
+                                .padding(.horizontal, 8).padding(.vertical, 6)
+                                .background(Color.primary.opacity(previewProfile?.id == profile.id ? 0.14 : 0.04), in: Capsule())
+                            }.buttonStyle(.plain)
+                        }
+                    }.padding(.horizontal, 12)
+                }.padding(.bottom, 8)
+            }
             ScrollView {
                 VStack(spacing: 10) {
                     if isCodex {
-                        if let profile = activeProfile {
+                        if let profile = previewProfile {
                             AccountUsageCard(profile: profile, store: store,
                                 onSwitch: { store.confirmSwitch(profile) },
                                 onRename: { open("accounts") }, onRemove: { open("accounts") }, showsManagement: false, compact: true)
