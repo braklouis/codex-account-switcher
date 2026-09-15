@@ -11,26 +11,13 @@ struct AccountsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 14) {
-                Text(L10n.isEnglish ? "Accounts" : "账号")
-                    .font(.title2.weight(.semibold))
-                Spacer()
-                HStack(spacing: 8) {
-                    Circle().fill(store.activeEmail == nil ? .gray : accent).frame(width: 7, height: 7)
-                    Text(L10n.text("当前登录")).foregroundStyle(.secondary)
-                    Text(store.activeEmail ?? L10n.text("尚未登录 / 登录不可读"))
-                        .lineLimit(1).textSelection(.enabled)
-                }
-                if store.demo { Text(L10n.text("演示")).foregroundStyle(.orange) }
-            }.font(.system(size: 12)).padding(.horizontal, 20).padding(.vertical, 16)
-            Divider()
             HStack {
                 Text(L10n.text("已保存账号")).font(.headline)
                 Text("\(store.profiles.count)").foregroundStyle(.secondary)
                 Spacer()
                 Button { store.refreshQuotas() } label: { Label(L10n.text("刷新额度"), systemImage: "arrow.clockwise") }
                     .disabled(store.busy || store.profiles.isEmpty)
-            }.padding(.horizontal, 20).padding(.vertical, 16)
+            }.padding(16)
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if !store.loaded {
@@ -44,7 +31,7 @@ struct AccountsView: View {
                         } description: { Text(L10n.text("保存当前 Codex 登录，或通过浏览器添加另一个会员账号。")) }
                     }
                     ForEach(store.orderedProfiles) { profile in accountCard(profile) }
-                }.padding(.horizontal, 20).padding(.bottom, 16)
+                }.padding(.horizontal, 16).padding(.bottom, 16)
             }
             Divider()
             VStack(alignment: .leading, spacing: 12) {
@@ -62,7 +49,7 @@ struct AccountsView: View {
                         Button(L10n.text("取消")) { store.cancelLogin() }.buttonStyle(.link)
                     }
                 }.font(.system(size: 11)).foregroundStyle(.secondary)
-            }.padding(20)
+            }.padding(16)
         }
         .frame(minWidth: 520, minHeight: 460)
         .background(Color(nsColor: .windowBackgroundColor))
