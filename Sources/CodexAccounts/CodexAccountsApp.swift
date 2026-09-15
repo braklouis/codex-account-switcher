@@ -157,23 +157,23 @@ struct MenuContent: View {
                 }
             }.font(.system(size: 11)).padding(.horizontal, 12).padding(.vertical, 9)
             if isCodex && store.orderedProfiles.count > 1 {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(store.orderedProfiles) { profile in
-                            Button { previewAccountID = profile.id } label: {
-                                HStack(spacing: 4) {
-                                    if profile.snapshot?.identity == store.activeIdentity {
-                                        Image(systemName: "checkmark.circle.fill")
-                                    }
-                                    Text(profile.name).lineLimit(1)
-                                }
-                                .font(.system(size: 10, weight: .medium))
-                                .padding(.horizontal, 8).padding(.vertical, 6)
-                                .background(Color.primary.opacity(previewProfile?.id == profile.id ? 0.14 : 0.04), in: Capsule())
-                            }.buttonStyle(.plain)
-                        }
-                    }.padding(.horizontal, 12)
-                }.padding(.bottom, 8)
+                VStack(spacing: 3) {
+                    ForEach(store.orderedProfiles) { profile in
+                        Button { previewAccountID = profile.id } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: profile.snapshot?.identity == store.activeIdentity ? "checkmark.circle.fill" : "person.crop.circle")
+                                Text(profile.name.components(separatedBy: "@").first ?? profile.name)
+                                    .lineLimit(1).truncationMode(.middle)
+                                Spacer(minLength: 4)
+                                Text(accountQuotaText(profile)).monospacedDigit().foregroundStyle(.secondary)
+                            }
+                            .font(.system(size: 10, weight: .medium))
+                            .padding(.horizontal, 8).padding(.vertical, 7)
+                            .background(Color.primary.opacity(previewProfile?.id == profile.id ? 0.12 : 0.025), in: RoundedRectangle(cornerRadius: 6))
+                            .contentShape(Rectangle())
+                        }.buttonStyle(.plain)
+                    }
+                }.padding(.horizontal, 12).padding(.bottom, 8)
             }
             ScrollView {
                 VStack(spacing: 10) {
@@ -193,7 +193,7 @@ struct MenuContent: View {
                         emptyState
                     }
                 }.padding(.leading, 12).padding(.trailing, 24).padding(.bottom, 9)
-            }.scrollIndicators(.hidden).frame(height: 260)
+            }.scrollIndicators(.hidden).frame(height: 210)
             if ["codex", "claude", "cursor"].contains(products.selected) {
                 LocalConsumptionSummary(provider: products.selected) { open("providers") }
                     .padding(.horizontal, 16).padding(.bottom, 12)
@@ -211,6 +211,13 @@ struct MenuContent: View {
         .tint(.primary)
         .accentColor(tint)
         .task(id: products.selected) { refresh(force: false) }
+    }
+    private func accountQuotaText(_ profile: Profile) -> String {
+        guard let bucket = store.quotas[profile.id]?.buckets.first(where: { $0.0 == "codex" })?.1 else { return "—" }
+        return [bucket.primary, bucket.secondary].compactMap { $0 }.map { window in
+            let label = window.windowDurationMins == 10080 ? "7d" : (window.windowDurationMins.map { "\($0 / 60)h" } ?? "")
+            return "\(label) \(Int(window.remaining))%"
+        }.joined(separator: " · ")
     }
     private func accountControl(title: String, account: String?) -> some View {
         HStack(spacing: 6) {

@@ -33,6 +33,7 @@ struct AccountUsageCard: View {
     @State private var expanded = false
     private let green = Color.primary
     private var active: Bool { profile.snapshot?.identity == store.activeIdentity }
+    private var isMenuCard: Bool { compact && !showsManagement }
     private var title: String {
         if profile.name == profile.snapshot?.email {
             return profile.name.components(separatedBy: "@").first ?? profile.name
@@ -46,14 +47,18 @@ struct AccountUsageCard: View {
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: compact ? 12 : 18) {
+        VStack(alignment: .leading, spacing: isMenuCard ? 8 : (compact ? 12 : 18)) {
             HStack(spacing: compact ? 8 : 12) {
+                if !isMenuCard {
                 Image(systemName: active ? "person.crop.circle.badge.checkmark" : "person.crop.circle")
                     .font(.system(size: compact ? 18 : 25, weight: .light)).foregroundStyle(green)
                     .frame(width: compact ? 30 : 46, height: compact ? 30 : 46).background(green.opacity(flat ? 0 : 0.08), in: RoundedRectangle(cornerRadius: compact ? 10 : 14))
+                }
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title).font(.system(size: compact ? 12 : 15, weight: .semibold)).lineLimit(1).help(profile.name)
-                    Text(profile.snapshot?.email ?? L10n.text("需要重新登录")).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    if !isMenuCard {
+                        Text(profile.snapshot?.email ?? L10n.text("需要重新登录")).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 4)
                 Text((profile.snapshot?.plan ?? "unknown").uppercased())
@@ -79,11 +84,11 @@ struct AccountUsageCard: View {
                 }
             }
             if let first = buckets.first {
-                VStack(alignment: .leading, spacing: compact ? 10 : 16) {
+                VStack(alignment: .leading, spacing: isMenuCard ? 6 : (compact ? 10 : 16)) {
                     bucketView(first.0, first.1)
                     if buckets.count > 1 {
                         DisclosureGroup(isExpanded: $expanded) {
-                            VStack(spacing: compact ? 10 : 16) {
+                            VStack(spacing: isMenuCard ? 6 : (compact ? 10 : 16)) {
                                 ForEach(Array(buckets.dropFirst()), id: \.0) { key, bucket in
                                     Divider()
                                     bucketView(key, bucket)
@@ -120,7 +125,7 @@ struct AccountUsageCard: View {
                     }
                 }
             }.padding(.top, 2)
-        }.padding(flat ? 4 : (compact ? 12 : 20))
+        }.padding(flat ? 4 : (isMenuCard ? 10 : (compact ? 12 : 20)))
             .background(compact ? Color.clear : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke((flat || compact) ? Color.clear : (active ? green.opacity(0.45) : Color.primary.opacity(0.08)), lineWidth: 1))
 
@@ -132,8 +137,8 @@ struct AccountUsageCard: View {
         return mins == 0 ? "刚刚\(prefix)" : "\(mins) 分钟前\(prefix)"
     }
     private func bucketView(_ key: String, _ bucket: QuotaBucket) -> some View {
-        VStack(alignment: .leading, spacing: 13) {
-            if !flat || key != "codex" {
+        VStack(alignment: .leading, spacing: isMenuCard ? 5 : 13) {
+            if (!flat && !isMenuCard) || key != "codex" {
             HStack {
                 Text(key == "codex" ? "CODEX" : (bucket.limitName ?? key).uppercased())
                     .font(.system(size: 10, weight: .semibold, design: .monospaced)).tracking(1).foregroundStyle(.secondary)
@@ -141,8 +146,8 @@ struct AccountUsageCard: View {
                 Text(L10n.text("剩余额度")).font(.system(size: 10)).foregroundStyle(.secondary)
             }
             }
-            if let window = bucket.primary { QuotaMeter(window: window, tint: green, compact: compact, dense: flat) }
-            if let window = bucket.secondary { QuotaMeter(window: window, tint: green, compact: compact, dense: flat) }
+            if let window = bucket.primary { QuotaMeter(window: window, tint: green, compact: compact, dense: flat, menuCompact: isMenuCard) }
+            if let window = bucket.secondary { QuotaMeter(window: window, tint: green, compact: compact, dense: flat, menuCompact: isMenuCard) }
             if bucket.primary == nil && bucket.secondary == nil {
                 Text(L10n.text("服务未提供时间窗口")).font(.caption).foregroundStyle(.secondary)
             }
@@ -156,6 +161,7 @@ struct QuotaMeter: View {
     let tint: Color
     var compact = false
     var dense = false
+    var menuCompact = false
     private var color: Color { tint }
     @ViewBuilder var body: some View {
         if dense {
@@ -168,6 +174,30 @@ struct QuotaMeter: View {
                     Text(Date(timeIntervalSince1970: reset), format: .dateTime.month(.twoDigits).day(.twoDigits).hour().minute())
                         .font(.caption).foregroundStyle(.secondary)
                         .help(L10n.isEnglish ? "Reset time" : "重置时间")
+                }
+            }
+        } else if menuCompact {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(L10n.text(window.title)).font(.system(size: 10, weight: .medium))
+                    Spacer(minLength: 4)
+                    Text("\(Int(window.remaining))%")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                }
+                ProgressView(value: max(0, min(100, window.remaining)), total: 100)
+                    .tint(color)
+                    .frame(height: 4)
+                    .accessibilityLabel("\(window.title)剩余 \(Int(window.remaining))%")
+                if let reset = window.resetsAt {
+                    TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                            Text(resetLabel(reset, now: timeline.date))
+                        }
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                    }
                 }
             }
         } else {
