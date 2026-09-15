@@ -4,97 +4,137 @@ import Darwin
 
 /// A small, read-only dashboard backed by the installed CodexBar CLI.
 /// It deliberately never reads provider credentials or changes the active account.
-struct ProviderDashboard: View {
-    private static let providers = ["codex", "claude", "cursor", "gemini", "openrouter", "grok", "kimi"]
-    @State private var selectedProvider = "codex"
-    @State private var rows: [String: ProviderUsage] = [:]
-    @State private var loading = false
-    @State private var lastRefresh: Date?
-    @State private var toolMissing = false
-    @State private var costRows: [String: LocalCost] = [:]
-    @State private var failedProviders: Set<String> = []
+@MainActor final class ProviderUsageStore: ObservableObject {
+    static let shared = ProviderUsageStore()
+    @Published private(set) var rows: [String: [ProviderUsage]] = [:]
+    @Published private(set) var selectedAccounts: [String: Int] = [:]
+    @Published private(set) var loading = false
+    @Published private(set) var errors: [String: String] = [:]
+    private var refreshedAt: [String: Date] = [:]
+    private var selectionKeys: [String: String] = UserDefaults.standard.dictionary(forKey: "providerAccountSelections") as? [String: String] ?? [:]
+    private var activeTask: Task<ProviderCLI.Result, Never>?
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-            Picker(tr("提供商", "Provider"), selection: $selectedProvider) {
-                ForEach(Self.providers, id: \.self) { provider in
-                    Text(ProviderUsage.displayName(provider)).tag(provider)
-                }
-            }
-            .pickerStyle(.segmented)
-            .disabled(loading)
-            .padding(20)
-            ScrollView {
-                if let row = rows[selectedProvider] {
-                    ProviderUsageCard(usage: row)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
-                } else if loading {
-                    HStack { ProgressView(); Text(tr("正在读取额度…", "Loading usage…")).foregroundStyle(.secondary) }
-                        .frame(maxWidth: .infinity, alignment: .center).padding(45)
-                } else if toolMissing {
-                    emptyState("找不到 CodexBar", "Install CodexBar 0.60.2 at /opt/homebrew/bin/codexbar or /usr/local/bin/codexbar.", "terminal")
-                } else {
-                    emptyState("尚未读取", "Click Refresh to load provider usage.", "chart.bar.xaxis")
-                }
-                if let cost = costRows[selectedProvider] { LocalCostCard(cost: cost).padding(20) }
-                if failedProviders.contains(selectedProvider) {
-                    Text(tr("查询未完成，请检查登录状态后重试。", "The query did not complete. Check your login and retry."))
-                        .font(.caption).foregroundStyle(.secondary).padding(20)
-                }
-                Link(tr("配置此平台", "Set up this provider"), destination: URL(string: "https://github.com/steipete/CodexBar/blob/main/docs/\(selectedProvider).md")!)
-                    .padding(.bottom, 20)
-            }
+    func selectedUsage(provider: String) -> ProviderUsage? {
+        guard let values = rows[provider], !values.isEmpty else { return nil }
+        return values[min(max(0, selectedAccounts[provider] ?? 0), values.count - 1)]
+    }
+    func selectAccount(provider: String, index: Int) {
+        guard let values = rows[provider], values.indices.contains(index) else { return }
+        selectedAccounts[provider] = index
+        // Unlabelled rows cannot be identified reliably after a provider reorders its response.
+        if let key = values[index].account { selectionKeys[provider] = key }
+        else { selectionKeys.removeValue(forKey: provider) }
+        UserDefaults.standard.set(selectionKeys, forKey: "providerAccountSelections")
+    }
+    func refresh(provider: String, force: Bool = false) async {
+        while let task = activeTask {
+            _ = await task.value
+            await Task.yield()
         }
-        .frame(minWidth: 560, minHeight: 420)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .task { if rows.isEmpty { await refresh() } }
-        .onChange(of: selectedProvider) { _, _ in Task { await refresh() } }
-    }
-
-    private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("TOKENDECK").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(.teal)
-                Text(tr("提供商额度", "Provider usage")).font(.system(size: 25, weight: .semibold))
-                Text(tr("各平台剩余额度、重置时间与消耗。", "Remaining quota, reset times and consumption across your AI services."))
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button { Task { await refresh() } } label: {
-                Label(tr("刷新", "Refresh"), systemImage: "arrow.clockwise")
-            }
-            .disabled(loading)
-        }.padding(22)
-    }
-
-    private func emptyState(_ title: String, _ message: String, _ icon: String) -> some View {
-        ContentUnavailableView { Label(tr(title, title == "找不到 CodexBar" ? "CodexBar not found" : "Not loaded"), systemImage: icon) }
-            description: { Text(tr(message, message)) }
-            .padding(.vertical, 35)
-    }
-
-    private func tr(_ chinese: String, _ english: String) -> String { L10n.isEnglish ? english : chinese }
-
-    @MainActor
-    private func refresh() async {
-        guard !loading else { return }
+        guard !Task.isCancelled else { return }
+        guard force || Date().timeIntervalSince(refreshedAt[provider] ?? .distantPast) >= 60 else { return }
         loading = true
-        defer { loading = false; lastRefresh = Date() }
-        let provider = selectedProvider
-        let result = await ProviderCLI.fetch(provider: provider)
-        if let row = result.row { rows[provider] = row; failedProviders.remove(provider) }
-        else { failedProviders.insert(provider) }
-        toolMissing = result.toolMissing
-        if ["codex", "claude", "cursor"].contains(provider) {
-            if let cost = await ProviderCLI.fetchCost(provider: provider) { costRows[provider] = cost }
+        let task = Task { await ProviderCLI.fetch(provider: provider) }
+        activeTask = task
+        let result = await task.value
+        defer { activeTask = nil; loading = false }
+        refreshedAt[provider] = Date()
+        if result.rows.isEmpty {
+            errors[provider] = result.toolMissing
+                ? (L10n.isEnglish ? "CodexBar is not installed." : "未找到 CodexBar。")
+                : (L10n.isEnglish ? "Could not refresh. Try again or check login settings." : "刷新失败，请重试或检查登录配置。")
+            return
         }
+        errors.removeValue(forKey: provider)
+        rows[provider] = result.rows
+        if let key = selectionKeys[provider], let index = result.rows.firstIndex(where: { $0.account == key }) {
+            selectedAccounts[provider] = index
+        } else { selectedAccounts[provider] = 0 }
     }
 }
 
-private struct ProviderUsageCard: View {
+struct ProviderDashboard: View {
+    @ObservedObject private var products = ProductPreferences.shared
+    @ObservedObject private var usage = ProviderUsageStore.shared
+    @Environment(\.openWindow) private var openWindow
+    @State private var costs: [String: LocalCost] = [:]
+    @State private var costLoading = false
+    @State private var costError: String?
+
+    var body: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("TOKENDECK").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(.teal).padding(.bottom, 18)
+                ForEach(products.enabled, id: \.self) { id in
+                    Button { products.selected = id } label: {
+                        HStack(spacing: 9) {
+                            Image(systemName: ProductPreferences.catalog.first { $0.id == id }?.symbol ?? "circle")
+                                .frame(width: 18)
+                            Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
+                            Spacer()
+                        }.font(.system(size: 13, weight: .medium)).padding(10)
+                            .foregroundStyle(products.selected == id ? Color.teal : Color.primary)
+                            .background(products.selected == id ? Color.teal.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 9))
+                    }.buttonStyle(.plain)
+                }
+                Spacer()
+                Button { openWindow(id: "products") } label: {
+                    Label(L10n.isEnglish ? "Choose products" : "选择产品", systemImage: "slider.horizontal.3")
+                }.buttonStyle(.borderless)
+            }.padding(18).frame(width: 190).background(Color.primary.opacity(0.025))
+            Divider()
+            VStack(spacing: 0) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(ProductPreferences.catalog.first { $0.id == products.selected }?.name ?? products.selected).font(.system(size: 25, weight: .semibold))
+                        Text(L10n.isEnglish ? "Usage, resets and spending" : "额度、重置时间与消耗").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button { Task { await usage.refresh(provider: products.selected, force: true) } } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }.disabled(usage.loading)
+                }.padding(24)
+                Divider()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        if let rows = usage.rows[products.selected], rows.count > 1 {
+                            Picker(L10n.isEnglish ? "Viewing account" : "查看账号", selection: Binding(
+                                get: { usage.selectedAccounts[products.selected] ?? 0 },
+                                set: { usage.selectAccount(provider: products.selected, index: $0) })) {
+                                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in Text(row.account ?? "Account \(index + 1)").tag(index) }
+                            }
+                        }
+                        if let row = usage.selectedUsage(provider: products.selected) { ProviderUsageCard(usage: row) }
+                        else if usage.loading { ProgressView().padding(40) }
+                        else { ContentUnavailableView(L10n.isEnglish ? "Connect your account" : "连接你的账号", systemImage: "person.crop.circle.badge.plus") }
+                        if let error = usage.errors[products.selected] { Text(error).font(.caption).foregroundStyle(.orange) }
+                        Button(L10n.isEnglish ? "Login & product settings" : "登录与产品设置") { openWindow(id: "products") }
+                            .buttonStyle(.borderless)
+                        if ["codex", "claude", "cursor"].contains(products.selected) {
+                            Divider()
+                            Button(L10n.isEnglish ? "Load local token consumption" : "读取本地 Token 消耗") { Task { await loadCost() } }.disabled(costLoading)
+                            if costLoading { ProgressView().controlSize(.small) }
+                            if let cost = costs[products.selected] { LocalCostCard(cost: cost) }
+                            if let costError { Text(costError).font(.caption).foregroundStyle(.secondary) }
+                        }
+                    }.padding(20)
+                }
+            }
+        }.frame(minWidth: 700, minHeight: 500)
+            .background(Color(nsColor: .windowBackgroundColor))
+            .task(id: products.selected) { await usage.refresh(provider: products.selected) }
+    }
+    private func loadCost() async {
+        guard !costLoading else { return }
+        let provider = products.selected
+        costLoading = true; costError = nil
+        defer { costLoading = false }
+        if let result = await ProviderCLI.fetchCost(provider: provider) { costs[provider] = result }
+        else { costError = L10n.isEnglish ? "Local consumption could not be read." : "暂时无法读取本地消耗。" }
+    }
+}
+
+struct ProviderUsageCard: View {
     let usage: ProviderUsage
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -164,9 +204,10 @@ private struct UsageWindowView: View {
     }
 }
 
-private struct ProviderUsage: Decodable {
+struct ProviderUsage: Decodable {
     let id: String
     let name: String
+    let sourceAccount: String?
     let identity: Identity?
     let windows: [UsageWindow]
     let credits: Credits?
@@ -174,12 +215,12 @@ private struct ProviderUsage: Decodable {
     let providerError: ProviderError?
     let details: [UsageDetailSection]?
     let updatedAt: Date?
-    var account: String? { identity?.accountEmail ?? identity?.plan }
+    var account: String? { sourceAccount ?? identity?.accountEmail }
     var errorMessage: String? {
         guard providerError != nil else { return nil }
         return L10n.isEnglish ? "Unavailable or account setup is required. Sign in with the provider and refresh." : "暂不可用或需要先完成账号设置。请登录该提供商后刷新。"
     }
-    static func displayName(_ id: String) -> String { ["claude":"Claude", "cursor":"Cursor", "gemini":"Gemini", "openrouter":"OpenRouter", "grok":"Grok", "kimi":"Kimi Code"][id] ?? id.capitalized }
+    static func displayName(_ id: String) -> String { ["claude":"Claude", "cursor":"Cursor", "gemini":"Gemini", "openrouter":"OpenRouter", "grok":"Grok", "kimi":"Kimi Code", "qwen-cloud":"Qwen Cloud", "zai":"GLM", "deepseek":"DeepSeek"][id] ?? id.capitalized }
     struct Identity: Decodable { let accountEmail: String?; let plan: String? }
     struct Credits: Decodable { let remaining: Double; let unit: String }
     struct UsageCost: Decodable { let todayUSD: Double?; let last30DaysUSD: Double? }
@@ -187,13 +228,14 @@ private struct ProviderUsage: Decodable {
     struct UsageDetailSection: Decodable { let title: String?; let rows: [UsageDetailRow]? }
     struct UsageDetailRow: Decodable { let label: String?; let value: String?; let secondaryValue: String? }
     private enum CodingKeys: String, CodingKey {
-        case id, name, identity, windows, credits, cost, updatedAt, details
+        case id, name, identity, windows, credits, cost, updatedAt, details, sourceAccount
         case providerError = "error"
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? Self.displayName(id)
+        sourceAccount = try c.decodeIfPresent(String.self, forKey: .sourceAccount)
         identity = try c.decodeIfPresent(Identity.self, forKey: .identity)
         windows = try c.decodeIfPresent([UsageWindow].self, forKey: .windows) ?? []
         credits = try c.decodeIfPresent(Credits.self, forKey: .credits)
@@ -204,20 +246,21 @@ private struct ProviderUsage: Decodable {
     }
 }
 
-private struct UsageWindow: Decodable {
+struct UsageWindow: Decodable {
     let label: String
     let remainingPercent: Double
     let resetAt: Date?
+    let durationMinutes: Double?
     var remaining: Double { remainingPercent }
-    private enum CodingKeys: String, CodingKey { case label, remainingPercent, resetAt }
+    private enum CodingKeys: String, CodingKey { case label, remainingPercent, resetAt, durationMinutes }
 }
 
-private struct ProviderCLI {
-    struct Result { var row: ProviderUsage?; var toolMissing = false }
+struct ProviderCLI {
+    struct Result { var rows: [ProviderUsage]; var toolMissing = false }
     static func fetch(provider: String) async -> Result {
         await Task.detached(priority: .utility) {
             let value = run(provider: provider)
-            return Result(row: value.0, toolMissing: value.1)
+            return Result(rows: value.0, toolMissing: value.1)
         }.value
     }
 
@@ -237,6 +280,7 @@ private struct ProviderCLI {
         for key in ["identity", "details", "updatedAt"] {
             if let value = usage[key], !(value is NSNull) { normalized[key] = value }
         }
+        if let account = source["account"] as? String { normalized["sourceAccount"] = account }
         if source["error"] != nil { normalized["error"] = ["code": 1] }
         let names = L10n.isEnglish ? ["Primary quota", "Weekly / secondary", "Additional quota"] : ["主要额度", "每周 / 次要额度", "其他额度"]
         var windows: [[String: Any]] = []
@@ -248,6 +292,7 @@ private struct ProviderCLI {
                 label = minutes >= 1440 ? String(format: L10n.isEnglish ? "%.0f days" : "%.0f 天", minutes / 1440) : String(format: L10n.isEnglish ? "%.1f hours" : "%.1f 小时", minutes / 60)
             }
             var mapped: [String: Any] = ["label": label, "remainingPercent": max(0, min(100, 100 - used))]
+            if let minutes, minutes > 0 { mapped["durationMinutes"] = minutes }
             if let reset = window["resetsAt"] as? String { mapped["resetAt"] = reset }
             windows.append(mapped)
         }
@@ -268,10 +313,22 @@ private struct ProviderCLI {
         return try? decoder.decode(ProviderUsage.self, from: data)
     }
 
-    private static func run(provider: String) -> (ProviderUsage?, Bool) {
-        guard executable != nil else { return (nil, true) }
-        guard let payload = execute(arguments: ["usage", "--provider", provider, "--format", "json", "--web-timeout", "12"]) else { return (nil, false) }
-        return (decodeUsage(payload, provider: provider), false)
+    static func decodeRows(_ payload: Data, provider: String) -> [ProviderUsage] {
+        guard let raw = try? JSONSerialization.jsonObject(with: payload) else { return [] }
+        let items = raw as? [[String: Any]] ?? (raw as? [String: Any]).map { [$0] } ?? []
+        return items.compactMap { item in
+            guard let data = try? JSONSerialization.data(withJSONObject: item) else { return nil }
+            return decodeUsage(data, provider: provider)
+        }
+    }
+    private static func run(provider: String) -> ([ProviderUsage], Bool) {
+        guard executable != nil else { return ([], true) }
+        if let all = execute(arguments: ["usage", "--provider", provider, "--all-accounts", "--format", "json", "--web-timeout", "12"]) {
+            let rows = decodeRows(all, provider: provider)
+            if rows.contains(where: { $0.errorMessage == nil && (!$0.windows.isEmpty || $0.details?.isEmpty == false || $0.credits != nil) }) { return (rows, false) }
+        }
+        guard let payload = execute(arguments: ["usage", "--provider", provider, "--format", "json", "--web-timeout", "12"]) else { return ([], false) }
+        return (decodeRows(payload, provider: provider), false)
     }
     private static var executable: String? {
         ["/opt/homebrew/bin/codexbar", "/usr/local/bin/codexbar"].first(where: { FileManager.default.isExecutableFile(atPath: $0) })
@@ -327,7 +384,7 @@ private final class OutputBuffer: @unchecked Sendable {
     }
 }
 
-private struct LocalCost: Decodable {
+struct LocalCost: Decodable {
     let provider: String
     let last30DaysTokens: Int64?
     let last30DaysCostUSD: Double?

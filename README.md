@@ -26,3 +26,9 @@ The local build is ad-hoc signed, not Apple-notarized. If macOS blocks a trusted
 ## Credits
 
 Provider integration references CodexBar by Peter Steinberger (MIT). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). TokenDeck does not embed its credentials or upload account data to a TokenDeck server.
+
+## Product selection
+
+Use the menu bar product chips to change the displayed service, and the account menu to choose an account. Codex selection switches its login; other providers select a monitored account returned by CodexBar. Choose products controls which services appear and remembers your selection. Qwen Cloud, GLM (z.ai / BigModel), and DeepSeek are available alongside the existing products. Login configuration opens CodexBar; TokenDeck reuses those logins without copying secrets.
+
+Regression checks: `zsh scripts/check-provider-models.sh` (add `--live` to verify configured Grok and OpenRouter queries).

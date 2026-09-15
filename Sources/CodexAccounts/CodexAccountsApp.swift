@@ -12,6 +12,8 @@ import SwitcherCore
         }
         .defaultSize(width: 700, height: 780)
         .windowResizability(.contentMinSize)
+        Window(L10n.isEnglish ? "Choose products" : "选择产品", id: "products") { ProductSettingsView() }
+            .defaultSize(width: 600, height: 650)
         Window("TokenDeck · AI", id: "providers") { ProviderDashboard() }
             .defaultSize(width: 760, height: 640)
         Window(L10n.text("设置"), id: "preferences") { PreferencesView() }.windowResizability(.contentSize)
@@ -69,65 +71,131 @@ import SwitcherCore
 
 struct MenuContent: View {
     @ObservedObject private var language = AppPreferences.shared
+    @ObservedObject private var products = ProductPreferences.shared
+    @ObservedObject private var usage = ProviderUsageStore.shared
     @ObservedObject var store: AccountStore
     @Environment(\.openWindow) private var openWindow
     private let tint = Color(red: 0.10, green: 0.52, blue: 0.41)
+    private var isCodex: Bool { products.selected == "codex" }
+    private var activeProfile: Profile? {
+        store.orderedProfiles.first { $0.snapshot?.identity == store.activeIdentity } ?? store.orderedProfiles.first
+    }
+    private var productName: String {
+        ProductPreferences.catalog.first { $0.id == products.selected }?.name ?? products.selected
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                AppBrandIcon().frame(width: 36, height: 36)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("TokenDeck").font(.system(size: 14, weight: .semibold))
-                    Text(L10n.text("各账号剩余额度")).font(.system(size: 11)).foregroundStyle(.secondary)
-                }
+            HStack(spacing: 9) {
+                AppBrandIcon().frame(width: 28, height: 28)
+                Text("TokenDeck").font(.system(size: 15, weight: .semibold))
                 Spacer()
-                if store.busy { ProgressView().controlSize(.small) }
-                Button { store.refreshQuotas() } label: {
-                    Image(systemName: "arrow.clockwise").frame(width: 26, height: 26)
-                }.buttonStyle(.borderless).help(L10n.text("刷新额度")).accessibilityLabel(L10n.text("刷新额度"))
-                    .disabled(store.busy || store.profiles.isEmpty)
-            }.padding(16)
-            Divider()
-            ScrollView {
-                VStack(spacing: 12) {
-                    if store.profiles.isEmpty {
-                        VStack(spacing: 8) {
-                            Image(systemName: "person.crop.circle.badge.plus").font(.title)
-                            Text(store.loaded ? L10n.text("先添加一个账号") : L10n.text("请解锁账号库"))
-                            Button(L10n.text("打开账号管理"), action: manage)
-                        }.padding(28)
+                Button { open("products") } label: { Image(systemName: "slider.horizontal.3") }
+                    .help(L10n.isEnglish ? "Choose products" : "选择产品")
+                Button { refresh(force: true) } label: {
+                    Image(systemName: "arrow.clockwise")
+                }.disabled(isCodex ? store.busy : usage.loading)
+            }.buttonStyle(.borderless).padding(16)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(products.enabled, id: \.self) { id in
+                        Button { products.selected = id } label: {
+                            Text(ProductPreferences.catalog.first { $0.id == id }?.name ?? id)
+                                .font(.system(size: 11, weight: products.selected == id ? .semibold : .medium))
+                                .padding(.horizontal, 11).padding(.vertical, 7)
+                                .foregroundStyle(products.selected == id ? tint : Color.secondary)
+                                .background(products.selected == id ? tint.opacity(0.12) : Color.primary.opacity(0.035), in: Capsule())
+                        }.buttonStyle(.plain)
                     }
-                    ForEach(store.orderedProfiles) { profile in
-                        AccountUsageCard(profile: profile, store: store,
-                            onSwitch: { store.confirmSwitch(profile) },
-                            onRename: manage, onRemove: manage, showsManagement: false)
-                    }
-                }.padding(12)
-            }.frame(height: store.profiles.isEmpty ? 160 : 480)
+                }.padding(.horizontal, 14)
+            }.padding(.bottom, 12)
             Divider()
             HStack {
-                Button(L10n.text("管理账号…"), action: manage)
-                Button(L10n.isEnglish ? "AI usage…" : "AI 额度…") { openWindow(id: "providers"); NSApp.activate(ignoringOtherApps: true) }
-                Button(L10n.text("设置…")) { openWindow(id: "preferences"); NSApp.activate(ignoringOtherApps: true) }
+                Text(productName).font(.system(size: 12, weight: .semibold))
                 Spacer()
-                Button(L10n.text("退出")) { NSApp.terminate(nil) }.disabled(store.busy)
+                if isCodex {
+                    Menu {
+                        ForEach(store.orderedProfiles) { profile in
+                            Button {
+                                if profile.snapshot?.identity != store.activeIdentity { store.confirmSwitch(profile) }
+                            } label: {
+                                Label(profile.name, systemImage: profile.snapshot?.identity == store.activeIdentity ? "checkmark.circle.fill" : "person.crop.circle")
+                            }.disabled(store.busy)
+                        }
+                        Divider()
+                        Button(L10n.isEnglish ? "Manage accounts…" : "管理账号…") { open("accounts") }
+                    } label: {
+                        Text(activeProfile?.name ?? (L10n.isEnglish ? "Accounts" : "账号"))
+                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 210, alignment: .trailing)
+                    }.menuStyle(.borderlessButton)
+                } else {
+                    Menu {
+                        ForEach(Array((usage.rows[products.selected] ?? []).enumerated()), id: \.offset) { index, row in
+                            Button(row.account ?? "\(L10n.isEnglish ? "Account" : "账号") \(index + 1)") {
+                                usage.selectAccount(provider: products.selected, index: index)
+                            }
+                        }
+                        Divider()
+                        Button(L10n.isEnglish ? "Login & accounts…" : "登录与账号…") { open("products") }
+                    } label: {
+                        Text(usage.selectedUsage(provider: products.selected)?.account ?? (L10n.isEnglish ? "Accounts" : "账号"))
+                            .lineLimit(1).truncationMode(.middle).frame(maxWidth: 210, alignment: .trailing)
+                    }.menuStyle(.borderlessButton)
+                }
+            }.font(.system(size: 11)).padding(.horizontal, 16).padding(.vertical, 12)
+            ScrollView {
+                VStack(spacing: 10) {
+                    if isCodex {
+                        if let profile = activeProfile {
+                            AccountUsageCard(profile: profile, store: store,
+                                onSwitch: { store.confirmSwitch(profile) },
+                                onRename: { open("accounts") }, onRemove: { open("accounts") }, showsManagement: false)
+                        } else {
+                            emptyState
+                        }
+                    } else if let row = usage.selectedUsage(provider: products.selected) {
+                        ProviderUsageCard(usage: row)
+                    } else if usage.loading {
+                        ProgressView().padding(40)
+                    } else {
+                        emptyState
+                    }
+                }.padding(.horizontal, 12).padding(.bottom, 12)
+            }.frame(height: 340)
+            Divider()
+            HStack {
+                Button(L10n.isEnglish ? "Usage & spend" : "额度与消耗") { open("providers") }
+                Spacer()
+                Button { open("preferences") } label: { Image(systemName: "gearshape") }
+                Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.disabled(store.busy)
             }.font(.system(size: 12)).buttonStyle(.borderless).padding(16)
         }
-        .frame(width: 400)
+        .frame(width: 370)
         .background(Color(nsColor: .windowBackgroundColor))
         .tint(tint)
-        .onAppear {
+        .task(id: products.selected) { refresh(force: false) }
+    }
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "person.crop.circle.badge.plus").font(.system(size: 26)).foregroundStyle(tint)
+            Text(L10n.isEnglish ? "Connect your account to see usage" : "连接账号后查看额度").font(.callout)
+            Button(L10n.isEnglish ? "Login & settings" : "登录与设置") { open(isCodex ? "accounts" : "products") }
+        }.frame(maxWidth: .infinity).padding(.vertical, 40)
+    }
+    private func refresh(force: Bool) {
+        if isCodex {
             store.refreshActive()
-            // Read on open if missing or older than a minute; both windows share one store.
-            if !store.busy && store.loaded && store.profiles.contains(where: {
+            if !store.busy && store.loaded && (force || store.profiles.contains(where: {
                 guard let date = store.quotaDates[$0.id] else { return true }
                 return Date().timeIntervalSince(date) > 60
-            }) { store.refreshQuotas() }
+            })) { store.refreshQuotas() }
+        } else {
+            let provider = products.selected
+            Task { await usage.refresh(provider: provider, force: force) }
         }
     }
-    private func manage() {
-        openWindow(id: "accounts")
+    private func open(_ id: String) {
+        openWindow(id: id)
         NSApp.activate(ignoringOtherApps: true)
     }
 }

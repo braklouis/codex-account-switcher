@@ -24,3 +24,9 @@ TokenDeck 是自用后续版本。旧 GitHub Release 和 Homebrew cask 仍是 Co
 ## 致谢
 
 多平台接入参考 Peter Steinberger 的 CodexBar（MIT），见 [第三方声明](THIRD_PARTY_NOTICES.md)。TokenDeck 不内嵌凭据，也没有上传账号数据的服务器。
+
+## 选择产品
+
+菜单栏上方直接切换产品，账号菜单可选择账号。Codex 会切换实际登录；其他产品切换查看 CodexBar 返回的账号。通过「选择产品」决定显示哪些服务并记住选择。新增 Qwen Cloud、GLM（z.ai / BigModel）、DeepSeek。登录配置打开 CodexBar，TokenDeck 复用登录，不复制凭据。
+
+回归检查：`zsh scripts/check-provider-models.sh`；加 `--live` 可检查已配置的 Grok 和 OpenRouter 查询。
